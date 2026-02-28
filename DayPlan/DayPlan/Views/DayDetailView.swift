@@ -27,6 +27,7 @@ struct DayDetailView: View {
         ScrollView {
             VStack(spacing: 16) {
                 dateHeader
+                dayEventSection
                 timeBarSection
                 statsRow
                 timeBlocksList
@@ -208,10 +209,44 @@ struct DayDetailView: View {
         }
     }
 
+    private var dayEventSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("今日の大きな予定")
+                .font(.caption.bold())
+                .foregroundColor(.secondary)
+
+            TextField("例：出張、飲み会、発表会...", text: dayEventBinding)
+                .font(.subheadline)
+                .textFieldStyle(.roundedBorder)
+        }
+        .padding(.horizontal)
+    }
+
+    private var dayEventBinding: Binding<String> {
+        Binding(
+            get: { viewModel.schedule(for: date).dayEvent },
+            set: { viewModel.updateDayEvent(for: date, event: $0) }
+        )
+    }
+
     private var statsRow: some View {
         HStack(spacing: 8) {
-            statCard(title: "残業予定", value: String(format: "%.1fh", schedule.plannedOvertimeHours), icon: "clock", color: .orange)
-            statCard(title: "残業実績", value: String(format: "%.1fh", schedule.actualOvertimeHours), icon: "clock.badge.exclamationmark", color: .red)
+            // Tappable overtime planned
+            Button {
+                showingOvertimeEntry = true
+            } label: {
+                statCard(title: "残業予定", value: String(format: "%.1fh", schedule.plannedOvertimeHours), icon: "clock", color: .orange)
+            }
+            .buttonStyle(.plain)
+
+            // Tappable overtime actual
+            Button {
+                showingOvertimeEntry = true
+            } label: {
+                statCard(title: "残業実績", value: String(format: "%.1fh", schedule.actualOvertimeHours), icon: "clock.badge.exclamationmark", color: .red)
+            }
+            .buttonStyle(.plain)
+
             statCard(title: "空き時間", value: String(format: "%.1fh", schedule.freeTimeHours), icon: "clock", color: .green)
             statCard(title: "予定数", value: "\(schedule.timeBlocks.count)件", icon: "calendar", color: .blue)
         }

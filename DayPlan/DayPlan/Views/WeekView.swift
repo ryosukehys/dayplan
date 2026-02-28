@@ -9,6 +9,9 @@ struct WeekView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // Quote of the week
+                quoteCard
+
                 weekSummaryCard
 
                 ForEach(viewModel.weekDates, id: \.self) { date in
@@ -76,6 +79,40 @@ struct WeekView: View {
                     }
                 }
         )
+    }
+
+    // MARK: - Quote Card
+
+    private var quoteCard: some View {
+        Group {
+            if let quote = viewModel.randomQuote {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(quote.text)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                        .italic()
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack {
+                        Spacer()
+                        Text("- \(quote.author)")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.systemGray6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.blue.opacity(0.3), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
+        }
     }
 
     // MARK: - Week Summary
