@@ -4,8 +4,20 @@ struct ContentView: View {
     @State private var viewModel = ScheduleViewModel()
     @State private var selectedTab = 0
 
+    private var tabSelection: Binding<Int> {
+        Binding(
+            get: { selectedTab },
+            set: { newValue in
+                if newValue == selectedTab && newValue == 0 {
+                    viewModel.goToToday()
+                }
+                selectedTab = newValue
+            }
+        )
+    }
+
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             NavigationStack {
                 WeekView(viewModel: viewModel)
             }

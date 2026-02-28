@@ -352,10 +352,18 @@ struct DayDetailView: View {
 
             // Add schedule button in the list
             Button {
-                prefillStartHour = 9
-                prefillStartMinute = 0
-                prefillEndHour = 10
-                prefillEndMinute = 0
+                if let lastBlock = schedule.sortedBlocks.last {
+                    prefillStartHour = lastBlock.endHour
+                    prefillStartMinute = lastBlock.endMinute
+                    let endTotal = lastBlock.endTotalMinutes + 60
+                    prefillEndHour = min(endTotal / 60, 24)
+                    prefillEndMinute = endTotal >= 1440 ? 0 : endTotal % 60
+                } else {
+                    prefillStartHour = 9
+                    prefillStartMinute = 0
+                    prefillEndHour = 10
+                    prefillEndMinute = 0
+                }
                 showingAddBlock = true
             } label: {
                 HStack(spacing: 8) {
