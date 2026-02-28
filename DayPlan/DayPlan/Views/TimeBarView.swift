@@ -4,6 +4,7 @@ struct TimeBarView: View {
     let schedule: DaySchedule
     let categories: [ScheduleCategory]
     let compact: Bool
+    var onTapGap: ((Int, Int) -> Void)?
 
     private let totalMinutes: CGFloat = 1440 // 24 hours
     private let hourLabels = [0, 3, 6, 9, 12, 15, 18, 21, 24]
@@ -14,10 +15,21 @@ struct TimeBarView: View {
                 let barWidth = geometry.size.width
 
                 ZStack(alignment: .leading) {
-                    // Background (free time)
+                    // Background (free time) — tappable gaps
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color(.systemGray5))
                         .frame(height: compact ? 24 : 36)
+                        .onTapGesture { location in
+                            guard let onTapGap = onTapGap else { return }
+                            let tappedMinute = Int((location.x / barWidth) * 1440)
+                            let gaps = schedule.gapSlots()
+                            if let gap = gaps.first(where: { tappedMinute >= $0.startMinute && tappedMinute < $0.endMinute }) {
+                                let snapped = (tappedMinute / 15) * 15
+                                let start = max(gap.startMinute, snapped)
+                                let end = min(gap.endMinute, start + 60)
+                                onTapGap(start, end)
+                            }
+                        }
 
                     // Time blocks
                     ForEach(schedule.sortedBlocks) { block in
@@ -32,6 +44,7 @@ struct TimeBarView: View {
                                 height: compact ? 24 : 36
                             )
                             .offset(x: startFraction * barWidth)
+                            .allowsHitTesting(false)
 
                         if !compact && widthFraction * barWidth > 40 {
                             Text(block.title.isEmpty ? (category?.name ?? "") : block.title)
@@ -40,6 +53,7 @@ struct TimeBarView: View {
                                 .lineLimit(1)
                                 .frame(width: widthFraction * barWidth - 4, alignment: .center)
                                 .offset(x: startFraction * barWidth + 2, y: 0)
+                                .allowsHitTesting(false)
                         }
                     }
                 }
@@ -65,25 +79,5 @@ struct TimeBarView: View {
                 .frame(height: 14)
             }
         }
-    }
-}
-
-struct TimeBarView_Previews: PreviewProvider {
-    static var previews: some View {
-        let categories = ScheduleCategory.defaults
-        let schedule = DaySchedule(
-            date: Date(),
-            timeBlocks: [
-                TimeBlock(categoryID: categories[0].id, startHour: 9, startMinute: 0, endHour: 17, endMinute: 30, title: "仕事"),
-                TimeBlock(categoryID: categories[1].id, startHour: 8, startMinute: 0, endHour: 9, endMinute: 0, title: "通勤"),
-                TimeBlock(categoryID: categories[4].id, startHour: 0, startMinute: 0, endHour: 7, endMinute: 0, title: "睡眠"),
-            ]
-        )
-
-        VStack(spacing: 20) {
-            TimeBarView(schedule: schedule, categories: categories, compact: false)
-            TimeBarView(schedule: schedule, categories: categories, compact: true)
-        }
-        .padding()
     }
 }

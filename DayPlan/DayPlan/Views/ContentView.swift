@@ -10,17 +10,41 @@ struct ContentView: View {
                 WeekView(viewModel: viewModel)
             }
             .tabItem {
-                Label("スケジュール", systemImage: "calendar")
+                Label("週間", systemImage: "calendar.day.timeline.left")
             }
             .tag(0)
+
+            NavigationStack {
+                MonthCalendarView(viewModel: viewModel)
+            }
+            .tabItem {
+                Label("カレンダー", systemImage: "calendar")
+            }
+            .tag(1)
+
+            NavigationStack {
+                StatisticsView(viewModel: viewModel)
+            }
+            .tabItem {
+                Label("統計", systemImage: "chart.bar")
+            }
+            .tag(2)
+
+            NavigationStack {
+                TrainingLogView(viewModel: viewModel)
+            }
+            .tabItem {
+                Label("練習記録", systemImage: "figure.run")
+            }
+            .tag(3)
 
             NavigationStack {
                 CategoryManageView(viewModel: viewModel)
             }
             .tabItem {
-                Label("カテゴリ", systemImage: "paintpalette")
+                Label("設定", systemImage: "gearshape")
             }
-            .tag(1)
+            .tag(4)
         }
     }
 }

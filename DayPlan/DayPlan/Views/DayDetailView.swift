@@ -2,33 +2,35 @@ import SwiftUI
 
 struct DayDetailView: View {
     @Bindable var viewModel: ScheduleViewModel
-    let date: Date
+    @State var date: Date
 
     @State private var showingAddBlock = false
     @State private var editingBlock: TimeBlock?
     @State private var showingCopyAlert = false
     @State private var showingPasteConfirm = false
+    @State private var showingOvertimeEntry = false
+    @State private var prefillStartHour: Int = 9
+    @State private var prefillStartMinute: Int = 0
+    @State private var prefillEndHour: Int = 10
+    @State private var prefillEndMinute: Int = 0
 
     var schedule: DaySchedule {
         viewModel.schedule(for: date)
     }
 
+    init(viewModel: ScheduleViewModel, date: Date) {
+        self.viewModel = viewModel
+        self._date = State(initialValue: date)
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Date header
                 dateHeader
-
-                // Time bar
                 timeBarSection
-
-                // Stats row
                 statsRow
-
-                // Time blocks list
                 timeBlocksList
 
-                // Todo section
                 TodoSectionView(date: date, viewModel: viewModel)
                     .padding(.horizontal)
 
@@ -57,6 +59,12 @@ struct DayDetailView: View {
 
                     Divider()
 
+                    Button {
+                        showingOvertimeEntry = true
+                    } label: {
+                        Label("残業時間を入力", systemImage: "clock.badge.exclamationmark")
+                    }
+
                     if schedule.isWeekday && schedule.timeBlocks.isEmpty {
                         Button {
                             viewModel.addDefaultWorkSchedule(to: date)
@@ -69,6 +77,10 @@ struct DayDetailView: View {
                 }
 
                 Button {
+                    prefillStartHour = 9
+                    prefillStartMinute = 0
+                    prefillEndHour = 10
+                    prefillEndMinute = 0
                     showingAddBlock = true
                 } label: {
                     Image(systemName: "plus")
@@ -76,14 +88,28 @@ struct DayDetailView: View {
             }
         }
         .sheet(isPresented: $showingAddBlock) {
-            TimeBlockEditView(viewModel: viewModel, date: date, onSave: {})
-                .presentationDetents([.large])
+            TimeBlockEditView(
+                viewModel: viewModel,
+                date: date,
+                initialStartHour: prefillStartHour,
+                initialStartMinute: prefillStartMinute,
+                initialEndHour: prefillEndHour,
+                initialEndMinute: prefillEndMinute,
+                onSave: {}
+            )
+            .presentationDetents([.large])
         }
         .sheet(item: $editingBlock) { block in
             TimeBlockEditView(viewModel: viewModel, date: date, existingBlock: block, onSave: {
                 editingBlock = nil
             })
             .presentationDetents([.large])
+        }
+        .sheet(isPresented: $showingOvertimeEntry) {
+            NavigationStack {
+                OvertimeEntryView(viewModel: viewModel, date: date)
+            }
+            .presentationDetents([.medium])
         }
         .alert("コピーしました", isPresented: $showingCopyAlert) {
             Button("OK", role: .cancel) {}
@@ -98,13 +124,36 @@ struct DayDetailView: View {
         } message: {
             Text("この日のスケジュールをコピーした内容で置き換えます。")
         }
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { value in
+                    if value.translation.width < -50 {
+                        withAnimation {
+                            date = Calendar.current.date(byAdding: .day, value: 1, to: date)!
+                        }
+                    } else if value.translation.width > 50 {
+                        withAnimation {
+                            date = Calendar.current.date(byAdding: .day, value: -1, to: date)!
+                        }
+                    }
+                }
+        )
     }
 
     // MARK: - Subviews
 
     private var dateHeader: some View {
-        VStack(spacing: 4) {
-            let formatter = DateFormatter()
+        HStack {
+            Button {
+                withAnimation {
+                    date = Calendar.current.date(byAdding: .day, value: -1, to: date)!
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.caption)
+            }
+
+            Spacer()
 
             Text({
                 let f = DateFormatter()
@@ -114,44 +163,57 @@ struct DayDetailView: View {
             }())
             .font(.headline)
             .foregroundColor(.primary)
+
+            Spacer()
+
+            Button {
+                withAnimation {
+                    date = Calendar.current.date(byAdding: .day, value: 1, to: date)!
+                }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+            }
         }
+        .padding(.horizontal)
         .padding(.top, 8)
     }
 
     private var timeBarSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("タイムライン")
-                .font(.caption.bold())
-                .foregroundColor(.secondary)
-                .padding(.horizontal)
+            HStack {
+                Text("タイムライン")
+                    .font(.caption.bold())
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("空きをタップで予定追加")
+                    .font(.system(size: 9))
+                    .foregroundColor(.blue)
+            }
+            .padding(.horizontal)
 
-            TimeBarView(schedule: schedule, categories: viewModel.categories, compact: false)
-                .padding(.horizontal)
+            TimeBarView(
+                schedule: schedule,
+                categories: viewModel.categories,
+                compact: false,
+                onTapGap: { startMin, endMin in
+                    prefillStartHour = startMin / 60
+                    prefillStartMinute = startMin % 60
+                    prefillEndHour = endMin / 60
+                    prefillEndMinute = endMin % 60
+                    showingAddBlock = true
+                }
+            )
+            .padding(.horizontal)
         }
     }
 
     private var statsRow: some View {
-        HStack(spacing: 12) {
-            statCard(
-                title: "残業",
-                value: String(format: "%.1f時間", schedule.overtimeHours(categories: viewModel.categories)),
-                icon: "clock.badge.exclamationmark",
-                color: .red
-            )
-
-            statCard(
-                title: "空き時間",
-                value: String(format: "%.1f時間", schedule.freeTimeHours),
-                icon: "clock",
-                color: .green
-            )
-
-            statCard(
-                title: "予定数",
-                value: "\(schedule.timeBlocks.count)件",
-                icon: "calendar",
-                color: .blue
-            )
+        HStack(spacing: 8) {
+            statCard(title: "残業予定", value: String(format: "%.1fh", schedule.plannedOvertimeHours), icon: "clock", color: .orange)
+            statCard(title: "残業実績", value: String(format: "%.1fh", schedule.actualOvertimeHours), icon: "clock.badge.exclamationmark", color: .red)
+            statCard(title: "空き時間", value: String(format: "%.1fh", schedule.freeTimeHours), icon: "clock", color: .green)
+            statCard(title: "予定数", value: "\(schedule.timeBlocks.count)件", icon: "calendar", color: .blue)
         }
         .padding(.horizontal)
     }
@@ -159,16 +221,16 @@ struct DayDetailView: View {
     private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.caption)
                 .foregroundColor(color)
             Text(value)
-                .font(.subheadline.bold())
+                .font(.caption.bold())
             Text(title)
-                .font(.caption)
+                .font(.system(size: 9))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
         .background(Color(.systemGray6))
         .cornerRadius(10)
     }
