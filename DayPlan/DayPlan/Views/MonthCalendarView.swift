@@ -3,8 +3,6 @@ import SwiftUI
 struct MonthCalendarView: View {
     @Bindable var viewModel: ScheduleViewModel
 
-    @State private var dragOffset: CGFloat = 0
-    @State private var showingDayDetail = false
     @State private var selectedDay: Date?
     @State private var showingOvertimeEntry = false
     @State private var overtimeDate: Date = Date()
@@ -14,13 +12,8 @@ struct MonthCalendarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Month navigation header
             monthHeader
-
-            // Weekday headers
             weekdayHeader
-
-            // Calendar grid with swipe
             calendarGrid
         }
         .navigationTitle("カレンダー")
@@ -31,7 +24,10 @@ struct MonthCalendarView: View {
             }
         }
         .sheet(isPresented: $showingOvertimeEntry) {
-            overtimeEntrySheet
+            NavigationStack {
+                OvertimeEntryView(viewModel: viewModel, date: overtimeDate)
+            }
+            .presentationDetents([.medium])
         }
     }
 
@@ -40,9 +36,7 @@ struct MonthCalendarView: View {
     private var monthHeader: some View {
         HStack {
             Button {
-                withAnimation {
-                    viewModel.goToPreviousMonth()
-                }
+                withAnimation { viewModel.goToPreviousMonth() }
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.title3)
@@ -55,23 +49,21 @@ struct MonthCalendarView: View {
                 viewModel.loadMonthSchedules(for: Date())
             } label: {
                 Text(viewModel.currentMonthString)
-                    .font(.headline)
+                    .font(.title3.bold())
             }
             .buttonStyle(.plain)
 
             Spacer()
 
             Button {
-                withAnimation {
-                    viewModel.goToNextMonth()
-                }
+                withAnimation { viewModel.goToNextMonth() }
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.title3)
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
     }
 
     // MARK: - Weekday Header
@@ -80,10 +72,10 @@ struct MonthCalendarView: View {
         LazyVGrid(columns: columns, spacing: 0) {
             ForEach(weekdayLabels, id: \.self) { label in
                 Text(label)
-                    .font(.caption.bold())
+                    .font(.subheadline.bold())
                     .foregroundColor(label == "土" ? .blue : label == "日" ? .red : .secondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
             }
         }
         .padding(.horizontal, 4)
@@ -99,13 +91,12 @@ struct MonthCalendarView: View {
                         dayCellView(for: date)
                     } else {
                         Color.clear
-                            .frame(height: 80)
+                            .frame(height: 90)
                     }
                 }
             }
             .padding(.horizontal, 4)
 
-            // Monthly overtime summary
             monthOvertimeSummary
                 .padding()
         }
@@ -132,14 +123,23 @@ struct MonthCalendarView: View {
         return Button {
             selectedDay = date
         } label: {
-            VStack(spacing: 2) {
-                // Day number
+            VStack(spacing: 1) {
+                // Day number - LARGER
                 Text("\(calendar.component(.day, from: date))")
-                    .font(.caption.bold())
+                    .font(.body.bold())
                     .foregroundColor(isToday ? .white : weekday == 1 ? .red : weekday == 7 ? .blue : .primary)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 30, height: 30)
                     .background(isToday ? Color.blue : Color.clear)
                     .clipShape(Circle())
+
+                // Day event text
+                if !schedule.dayEvent.isEmpty {
+                    Text(schedule.dayEvent)
+                        .font(.system(size: 8).bold())
+                        .foregroundColor(.orange)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                }
 
                 // Event indicators (color dots)
                 if !schedule.timeBlocks.isEmpty {
@@ -152,9 +152,6 @@ struct MonthCalendarView: View {
                         }
                     }
                     .frame(height: 6)
-                } else {
-                    Spacer()
-                        .frame(height: 6)
                 }
 
                 // Mini time bar
@@ -166,19 +163,19 @@ struct MonthCalendarView: View {
                 // Overtime badge
                 if schedule.actualOvertimeMinutes > 0 || schedule.plannedOvertimeMinutes > 0 {
                     Text(String(format: "残%.0fh", schedule.actualOvertimeHours > 0 ? schedule.actualOvertimeHours : schedule.plannedOvertimeHours))
-                        .font(.system(size: 7))
+                        .font(.system(size: 8))
                         .foregroundColor(.red)
                 }
 
                 // Event count
                 if schedule.timeBlocks.count > 0 {
                     Text("\(schedule.timeBlocks.count)件")
-                        .font(.system(size: 8))
+                        .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 80)
+            .frame(height: 90)
             .background(Color(.systemGray6).opacity(0.5))
             .cornerRadius(6)
         }
@@ -286,15 +283,6 @@ struct MonthCalendarView: View {
                 .cornerRadius(8)
             }
         }
-    }
-
-    // MARK: - Overtime Entry Sheet
-
-    private var overtimeEntrySheet: some View {
-        NavigationStack {
-            OvertimeEntryView(viewModel: viewModel, date: overtimeDate)
-        }
-        .presentationDetents([.medium])
     }
 }
 

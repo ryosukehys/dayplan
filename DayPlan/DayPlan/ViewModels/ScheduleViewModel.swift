@@ -11,15 +11,20 @@ class ScheduleViewModel {
     // Training logs
     var trainingLogs: [TrainingLog] = []
 
+    // Quotes
+    var quotes: [Quote] = []
+
     private let categoriesKey = "savedCategories"
     private let schedulesKey = "savedSchedules"
     private let trainingKey = "savedTraining"
+    private let quotesKey = "savedQuotes"
 
     // In-memory cache of loaded schedules keyed by "yyyy-MM-dd"
     private var scheduleCache: [String: DaySchedule] = [:]
 
     init() {
         loadCategories()
+        loadQuotes()
         updateCurrentWeekStart()
         loadMonthSchedules(for: selectedDate)
     }
@@ -374,6 +379,55 @@ class ScheduleViewModel {
 
     func weeklyTrainingLogs() -> [TrainingLog] {
         weekDates.map { trainingLog(for: $0) }.filter { $0.hasContent }
+    }
+
+    // MARK: - Day Event
+
+    func updateDayEvent(for date: Date, event: String) {
+        var daySchedule = schedule(for: date)
+        daySchedule.dayEvent = event
+        updateSchedule(daySchedule)
+    }
+
+    // MARK: - Quotes
+
+    var randomQuote: Quote? {
+        guard !quotes.isEmpty else { return nil }
+        let dayOfYear = calendar.ordinality(of: .day, in: .year, for: selectedDate) ?? 0
+        return quotes[dayOfYear % quotes.count]
+    }
+
+    func addQuote(_ quote: Quote) {
+        quotes.append(quote)
+        saveQuotes()
+    }
+
+    func removeQuote(_ quote: Quote) {
+        quotes.removeAll { $0.id == quote.id }
+        saveQuotes()
+    }
+
+    func updateQuote(_ quote: Quote) {
+        if let index = quotes.firstIndex(where: { $0.id == quote.id }) {
+            quotes[index] = quote
+            saveQuotes()
+        }
+    }
+
+    private func saveQuotes() {
+        if let data = try? JSONEncoder().encode(quotes) {
+            UserDefaults.standard.set(data, forKey: quotesKey)
+        }
+    }
+
+    private func loadQuotes() {
+        if let data = UserDefaults.standard.data(forKey: quotesKey),
+           let saved = try? JSONDecoder().decode([Quote].self, from: data) {
+            quotes = saved
+        } else {
+            quotes = Quote.defaults
+            saveQuotes()
+        }
     }
 
     // MARK: - Persistence

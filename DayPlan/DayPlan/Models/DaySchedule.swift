@@ -7,6 +7,7 @@ struct DaySchedule: Identifiable, Codable {
     var todos: [String]
     var plannedOvertimeMinutes: Int
     var actualOvertimeMinutes: Int
+    var dayEvent: String
 
     init(
         id: UUID = UUID(),
@@ -14,7 +15,8 @@ struct DaySchedule: Identifiable, Codable {
         timeBlocks: [TimeBlock] = [],
         todos: [String] = ["", "", ""],
         plannedOvertimeMinutes: Int = 0,
-        actualOvertimeMinutes: Int = 0
+        actualOvertimeMinutes: Int = 0,
+        dayEvent: String = ""
     ) {
         self.id = id
         self.date = date
@@ -22,6 +24,7 @@ struct DaySchedule: Identifiable, Codable {
         self.todos = todos
         self.plannedOvertimeMinutes = plannedOvertimeMinutes
         self.actualOvertimeMinutes = actualOvertimeMinutes
+        self.dayEvent = dayEvent
     }
 
     var sortedBlocks: [TimeBlock] {

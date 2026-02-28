@@ -24,6 +24,7 @@
 		AA000015 /* MonthCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015; };
 		AA000016 /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016; };
 		AA000017 /* TrainingLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017; };
+		AA000018 /* Quote.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100018; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,7 @@
 		AA100015 /* MonthCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthCalendarView.swift; sourceTree = "<group>"; };
 		AA100016 /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
 		AA100017 /* TrainingLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLogView.swift; sourceTree = "<group>"; };
+		AA100018 /* Quote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quote.swift; sourceTree = "<group>"; };
 		AA200001 /* DayPlan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DayPlan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -85,6 +87,7 @@
 				AA100005 /* DaySchedule.swift */,
 				AA100006 /* Category.swift */,
 				AA100014 /* TrainingLog.swift */,
+				AA100018 /* Quote.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -208,6 +211,7 @@
 				AA000015 /* MonthCalendarView.swift in Sources */,
 				AA000016 /* StatisticsView.swift in Sources */,
 				AA000017 /* TrainingLogView.swift in Sources */,
+				AA000018 /* Quote.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
