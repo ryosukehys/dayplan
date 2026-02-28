@@ -69,12 +69,15 @@ struct WeekView: View {
         .sheet(isPresented: $showingPasteTargets) {
             pasteTargetSheet
         }
-        .gesture(
-            DragGesture(minimumDistance: 50)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 60)
                 .onEnded { value in
-                    if value.translation.width < -50 {
+                    let horizontal = abs(value.translation.width)
+                    let vertical = abs(value.translation.height)
+                    guard horizontal > vertical else { return }
+                    if value.translation.width < -60 {
                         withAnimation { viewModel.goToNextWeek() }
-                    } else if value.translation.width > 50 {
+                    } else if value.translation.width > 60 {
                         withAnimation { viewModel.goToPreviousWeek() }
                     }
                 }

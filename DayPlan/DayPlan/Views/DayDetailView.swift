@@ -125,14 +125,17 @@ struct DayDetailView: View {
         } message: {
             Text("この日のスケジュールをコピーした内容で置き換えます。")
         }
-        .gesture(
-            DragGesture(minimumDistance: 50)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 60)
                 .onEnded { value in
-                    if value.translation.width < -50 {
+                    let horizontal = abs(value.translation.width)
+                    let vertical = abs(value.translation.height)
+                    guard horizontal > vertical else { return }
+                    if value.translation.width < -60 {
                         withAnimation {
                             date = Calendar.current.date(byAdding: .day, value: 1, to: date)!
                         }
-                    } else if value.translation.width > 50 {
+                    } else if value.translation.width > 60 {
                         withAnimation {
                             date = Calendar.current.date(byAdding: .day, value: -1, to: date)!
                         }
@@ -346,6 +349,29 @@ struct DayDetailView: View {
                     .padding(.vertical, 6)
                 }
             }
+
+            // Add schedule button in the list
+            Button {
+                prefillStartHour = 9
+                prefillStartMinute = 0
+                prefillEndHour = 10
+                prefillEndMinute = 0
+                showingAddBlock = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.blue)
+                    Text("予定を追加")
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.blue.opacity(0.08))
+                .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal)
         }
     }
 }

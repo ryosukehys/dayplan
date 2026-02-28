@@ -340,6 +340,11 @@ class ScheduleViewModel {
         }
     }
 
+    func moveCategory(from source: IndexSet, to destination: Int) {
+        categories.move(fromOffsets: source, toOffset: destination)
+        saveCategories()
+    }
+
     func category(for id: UUID) -> ScheduleCategory? {
         categories.first { $0.id == id }
     }
