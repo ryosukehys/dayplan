@@ -9,10 +9,8 @@ struct WeekView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Weekly overtime summary
                 weekSummaryCard
 
-                // Days
                 ForEach(viewModel.weekDates, id: \.self) { date in
                     NavigationLink(destination: DayDetailView(viewModel: viewModel, date: date)) {
                         dayRow(for: date)
@@ -25,7 +23,6 @@ struct WeekView: View {
                     }
                 }
 
-                // Category legend
                 categoryLegend
                     .padding(.top, 12)
             }
@@ -34,7 +31,7 @@ struct WeekView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarLeading) {
                 Button {
-                    viewModel.goToPreviousWeek()
+                    withAnimation { viewModel.goToPreviousWeek() }
                 } label: {
                     Image(systemName: "chevron.left")
                 }
@@ -52,7 +49,7 @@ struct WeekView: View {
 
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
-                    viewModel.goToNextWeek()
+                    withAnimation { viewModel.goToNextWeek() }
                 } label: {
                     Image(systemName: "chevron.right")
                 }
@@ -69,42 +66,77 @@ struct WeekView: View {
         .sheet(isPresented: $showingPasteTargets) {
             pasteTargetSheet
         }
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { value in
+                    if value.translation.width < -50 {
+                        withAnimation { viewModel.goToNextWeek() }
+                    } else if value.translation.width > 50 {
+                        withAnimation { viewModel.goToPreviousWeek() }
+                    }
+                }
+        )
     }
 
     // MARK: - Week Summary
 
     private var weekSummaryCard: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("今週の残業")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text(String(format: "%.1f 時間", viewModel.weeklyOvertimeHours()))
-                    .font(.title2.bold())
-                    .foregroundColor(viewModel.weeklyOvertimeHours() > 0 ? .red : .primary)
+        VStack(spacing: 8) {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("今週の残業")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(String(format: "%.1f 時間", viewModel.weeklyOvertimeHours()))
+                        .font(.title2.bold())
+                        .foregroundColor(viewModel.weeklyOvertimeHours() > 0 ? .red : .primary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("残業目安")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    let overtime = viewModel.weeklyOvertimeHours()
+                    if overtime <= 5 {
+                        Text("余裕あり")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.green)
+                    } else if overtime <= 10 {
+                        Text("やや多い")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.orange)
+                    } else {
+                        Text("早めに帰ろう!")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.red)
+                    }
+                }
             }
 
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("残業目安")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                let overtime = viewModel.weeklyOvertimeHours()
-                if overtime <= 5 {
-                    Text("余裕あり")
-                        .font(.subheadline.bold())
-                        .foregroundColor(.green)
-                } else if overtime <= 10 {
-                    Text("やや多い")
-                        .font(.subheadline.bold())
+            // Planned vs Actual overtime
+            HStack(spacing: 12) {
+                HStack(spacing: 4) {
+                    Text("予定")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                    Text(String(format: "%.1fh", viewModel.weeklyPlannedOvertimeHours()))
+                        .font(.caption.bold())
                         .foregroundColor(.orange)
-                } else {
-                    Text("早めに帰ろう!")
-                        .font(.subheadline.bold())
+                }
+
+                HStack(spacing: 4) {
+                    Text("実績")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                    Text(String(format: "%.1fh", viewModel.weeklyActualOvertimeHours()))
+                        .font(.caption.bold())
                         .foregroundColor(.red)
                 }
+
+                Spacer()
             }
         }
         .padding()
@@ -122,7 +154,6 @@ struct WeekView: View {
         let isToday = calendar.isDateInToday(date)
 
         return HStack(spacing: 12) {
-            // Day label
             VStack(spacing: 2) {
                 Text(dayOfWeekString(date))
                     .font(.caption2)
@@ -137,7 +168,6 @@ struct WeekView: View {
             }
             .frame(width: 40)
 
-            // Time bar
             VStack(alignment: .leading, spacing: 2) {
                 TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true)
 

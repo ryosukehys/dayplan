@@ -20,6 +20,10 @@
 		AA000011 /* TimeBlockEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011; };
 		AA000012 /* CategoryManageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012; };
 		AA000013 /* TodoSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100013; };
+		AA000014 /* TrainingLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014; };
+		AA000015 /* MonthCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015; };
+		AA000016 /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016; };
+		AA000017 /* TrainingLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +40,10 @@
 		AA100011 /* TimeBlockEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeBlockEditView.swift; sourceTree = "<group>"; };
 		AA100012 /* CategoryManageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryManageView.swift; sourceTree = "<group>"; };
 		AA100013 /* TodoSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoSectionView.swift; sourceTree = "<group>"; };
+		AA100014 /* TrainingLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLog.swift; sourceTree = "<group>"; };
+		AA100015 /* MonthCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthCalendarView.swift; sourceTree = "<group>"; };
+		AA100016 /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
+		AA100017 /* TrainingLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLogView.swift; sourceTree = "<group>"; };
 		AA200001 /* DayPlan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DayPlan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -76,6 +84,7 @@
 				AA100004 /* TimeBlock.swift */,
 				AA100005 /* DaySchedule.swift */,
 				AA100006 /* Category.swift */,
+				AA100014 /* TrainingLog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -98,6 +107,9 @@
 				AA100011 /* TimeBlockEditView.swift */,
 				AA100012 /* CategoryManageView.swift */,
 				AA100013 /* TodoSectionView.swift */,
+				AA100015 /* MonthCalendarView.swift */,
+				AA100016 /* StatisticsView.swift */,
+				AA100017 /* TrainingLogView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -192,6 +204,10 @@
 				AA000011 /* TimeBlockEditView.swift in Sources */,
 				AA000012 /* CategoryManageView.swift in Sources */,
 				AA000013 /* TodoSectionView.swift in Sources */,
+				AA000014 /* TrainingLog.swift in Sources */,
+				AA000015 /* MonthCalendarView.swift in Sources */,
+				AA000016 /* StatisticsView.swift in Sources */,
+				AA000017 /* TrainingLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -4,6 +4,10 @@ struct TimeBlockEditView: View {
     @Bindable var viewModel: ScheduleViewModel
     let date: Date
     var existingBlock: TimeBlock?
+    var initialStartHour: Int = 9
+    var initialStartMinute: Int = 0
+    var initialEndHour: Int = 17
+    var initialEndMinute: Int = 30
     var onSave: () -> Void
 
     @State private var selectedCategoryID: UUID?
@@ -129,8 +133,14 @@ struct TimeBlockEditView: View {
                     endHour = block.endHour
                     endMinute = block.endMinute
                     title = block.title
-                } else if selectedCategoryID == nil {
-                    selectedCategoryID = viewModel.categories.first?.id
+                } else {
+                    startHour = initialStartHour
+                    startMinute = initialStartMinute
+                    endHour = initialEndHour
+                    endMinute = initialEndMinute
+                    if selectedCategoryID == nil {
+                        selectedCategoryID = viewModel.categories.first?.id
+                    }
                 }
             }
         }

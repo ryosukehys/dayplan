@@ -3,52 +3,80 @@ import SwiftUI
 @Observable
 class ScheduleViewModel {
     var categories: [ScheduleCategory] = []
-    var weekSchedules: [DaySchedule] = []
     var selectedDate: Date = Date()
     var copiedDaySchedule: DaySchedule?
     var currentWeekStart: Date = Date()
+    var currentMonthDate: Date = Date()
+
+    // Training logs
+    var trainingLogs: [TrainingLog] = []
 
     private let categoriesKey = "savedCategories"
     private let schedulesKey = "savedSchedules"
+    private let trainingKey = "savedTraining"
+
+    // In-memory cache of loaded schedules keyed by "yyyy-MM-dd"
+    private var scheduleCache: [String: DaySchedule] = [:]
 
     init() {
         loadCategories()
         updateCurrentWeekStart()
-        loadSchedules()
+        loadMonthSchedules(for: selectedDate)
+    }
+
+    // MARK: - Date Helpers
+
+    private var calendar: Calendar { Calendar.current }
+
+    private func dateKey(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func monthKey(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM"
+        return formatter.string(from: date)
     }
 
     // MARK: - Week Navigation
 
     func updateCurrentWeekStart() {
-        let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: selectedDate)
-        // Sunday = 1, Monday = 2, so Monday offset is (weekday - 2 + 7) % 7
         let daysFromMonday = (weekday - 2 + 7) % 7
         currentWeekStart = calendar.date(byAdding: .day, value: -daysFromMonday, to: selectedDate)!
         currentWeekStart = calendar.startOfDay(for: currentWeekStart)
     }
 
     func goToNextWeek() {
-        selectedDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: selectedDate)!
+        selectedDate = calendar.date(byAdding: .weekOfYear, value: 1, to: selectedDate)!
         updateCurrentWeekStart()
-        loadSchedules()
+        loadMonthSchedules(for: selectedDate)
     }
 
     func goToPreviousWeek() {
-        selectedDate = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: selectedDate)!
+        selectedDate = calendar.date(byAdding: .weekOfYear, value: -1, to: selectedDate)!
         updateCurrentWeekStart()
-        loadSchedules()
+        loadMonthSchedules(for: selectedDate)
     }
 
     func goToToday() {
         selectedDate = Date()
         updateCurrentWeekStart()
-        loadSchedules()
+        currentMonthDate = Date()
+        loadMonthSchedules(for: selectedDate)
+    }
+
+    func selectDate(_ date: Date) {
+        selectedDate = date
+        updateCurrentWeekStart()
+        loadMonthSchedules(for: selectedDate)
     }
 
     var weekDates: [Date] {
         (0..<7).map { offset in
-            Calendar.current.date(byAdding: .day, value: offset, to: currentWeekStart)!
+            calendar.date(byAdding: .day, value: offset, to: currentWeekStart)!
         }
     }
 
@@ -61,24 +89,69 @@ class ScheduleViewModel {
         return "\(start) 〜 \(end)"
     }
 
+    // MARK: - Month Navigation
+
+    func goToNextMonth() {
+        currentMonthDate = calendar.date(byAdding: .month, value: 1, to: currentMonthDate)!
+        loadMonthSchedules(for: currentMonthDate)
+    }
+
+    func goToPreviousMonth() {
+        currentMonthDate = calendar.date(byAdding: .month, value: -1, to: currentMonthDate)!
+        loadMonthSchedules(for: currentMonthDate)
+    }
+
+    var currentMonthString: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "yyyy年M月"
+        return formatter.string(from: currentMonthDate)
+    }
+
+    var monthDates: [Date?] {
+        let comps = calendar.dateComponents([.year, .month], from: currentMonthDate)
+        guard let firstOfMonth = calendar.date(from: comps) else { return [] }
+
+        let range = calendar.range(of: .day, in: .month, for: firstOfMonth)!
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
+        // Monday=0 offset
+        let leadingBlanks = (firstWeekday - 2 + 7) % 7
+
+        var dates: [Date?] = Array(repeating: nil, count: leadingBlanks)
+        for day in range {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) {
+                dates.append(date)
+            }
+        }
+        // Pad trailing to fill last row
+        while dates.count % 7 != 0 {
+            dates.append(nil)
+        }
+        return dates
+    }
+
     // MARK: - Schedule Management
 
     func schedule(for date: Date) -> DaySchedule {
-        let calendar = Calendar.current
-        if let existing = weekSchedules.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
-            return existing
+        let key = dateKey(for: date)
+        if let cached = scheduleCache[key] {
+            return cached
+        }
+        // Try loading from UserDefaults
+        if let data = UserDefaults.standard.data(forKey: "\(schedulesKey)_\(key)"),
+           let saved = try? JSONDecoder().decode(DaySchedule.self, from: data) {
+            scheduleCache[key] = saved
+            return saved
         }
         return DaySchedule(date: date)
     }
 
     func updateSchedule(_ schedule: DaySchedule) {
-        let calendar = Calendar.current
-        if let index = weekSchedules.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: schedule.date) }) {
-            weekSchedules[index] = schedule
-        } else {
-            weekSchedules.append(schedule)
+        let key = dateKey(for: schedule.date)
+        scheduleCache[key] = schedule
+        if let data = try? JSONEncoder().encode(schedule) {
+            UserDefaults.standard.set(data, forKey: "\(schedulesKey)_\(key)")
         }
-        saveSchedules()
     }
 
     func addTimeBlock(to date: Date, block: TimeBlock) {
@@ -105,16 +178,12 @@ class ScheduleViewModel {
 
     func addDefaultWorkSchedule(to date: Date) {
         guard let workCategory = categories.first(where: { $0.name == "仕事" }) else { return }
-
         let workBlock = TimeBlock(
             categoryID: workCategory.id,
-            startHour: 9,
-            startMinute: 0,
-            endHour: 17,
-            endMinute: 30,
+            startHour: 9, startMinute: 0,
+            endHour: 17, endMinute: 30,
             title: "仕事"
         )
-
         addTimeBlock(to: date, block: workBlock)
     }
 
@@ -130,10 +199,8 @@ class ScheduleViewModel {
         newSchedule.timeBlocks = copied.timeBlocks.map { block in
             TimeBlock(
                 categoryID: block.categoryID,
-                startHour: block.startHour,
-                startMinute: block.startMinute,
-                endHour: block.endHour,
-                endMinute: block.endMinute,
+                startHour: block.startHour, startMinute: block.startMinute,
+                endHour: block.endHour, endMinute: block.endMinute,
                 title: block.title
             )
         }
@@ -158,28 +225,95 @@ class ScheduleViewModel {
         updateSchedule(daySchedule)
     }
 
-    // MARK: - Overtime Calculation
+    // MARK: - Overtime (Planned / Actual)
+
+    func updatePlannedOvertime(for date: Date, minutes: Int) {
+        var daySchedule = schedule(for: date)
+        daySchedule.plannedOvertimeMinutes = minutes
+        updateSchedule(daySchedule)
+    }
+
+    func updateActualOvertime(for date: Date, minutes: Int) {
+        var daySchedule = schedule(for: date)
+        daySchedule.actualOvertimeMinutes = minutes
+        updateSchedule(daySchedule)
+    }
+
+    func weeklyPlannedOvertimeHours() -> Double {
+        weekDates.reduce(0.0) { $0 + schedule(for: $1).plannedOvertimeHours }
+    }
+
+    func weeklyActualOvertimeHours() -> Double {
+        weekDates.reduce(0.0) { $0 + schedule(for: $1).actualOvertimeHours }
+    }
 
     func weeklyOvertimeMinutes() -> Int {
-        weekSchedules.reduce(0) { $0 + $1.overtimeMinutes(categories: categories) }
+        weekDates.reduce(0) { $0 + schedule(for: $1).overtimeMinutes(categories: categories) }
     }
 
     func weeklyOvertimeHours() -> Double {
         Double(weeklyOvertimeMinutes()) / 60.0
     }
 
-    func monthlyOvertimeHours() -> Double {
-        // Sum all schedules for the current month
-        let calendar = Calendar.current
-        let currentMonth = calendar.component(.month, from: selectedDate)
-        let currentYear = calendar.component(.year, from: selectedDate)
+    func monthlySchedules(for date: Date) -> [DaySchedule] {
+        let comps = calendar.dateComponents([.year, .month], from: date)
+        guard let firstOfMonth = calendar.date(from: comps),
+              let range = calendar.range(of: .day, in: .month, for: firstOfMonth) else { return [] }
 
-        return weekSchedules
-            .filter {
-                calendar.component(.month, from: $0.date) == currentMonth &&
-                calendar.component(.year, from: $0.date) == currentYear
+        return range.compactMap { day in
+            guard let d = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) else { return nil }
+            let s = schedule(for: d)
+            return s.timeBlocks.isEmpty && s.plannedOvertimeMinutes == 0 && s.actualOvertimeMinutes == 0 ? nil : s
+        }
+    }
+
+    func monthlyOvertimeHours(for date: Date) -> (planned: Double, actual: Double) {
+        let schedules = monthlySchedules(for: date)
+        let planned = schedules.reduce(0.0) { $0 + $1.plannedOvertimeHours }
+        let actual = schedules.reduce(0.0) { $0 + $1.actualOvertimeHours }
+        return (planned, actual)
+    }
+
+    // MARK: - Statistics
+
+    struct CategoryStat: Identifiable {
+        let id: UUID
+        let category: ScheduleCategory
+        let totalMinutes: Int
+        var totalHours: Double { Double(totalMinutes) / 60.0 }
+    }
+
+    func weeklyStats() -> [CategoryStat] {
+        var minutesByCategory: [UUID: Int] = [:]
+        for date in weekDates {
+            let s = schedule(for: date)
+            for block in s.timeBlocks {
+                minutesByCategory[block.categoryID, default: 0] += block.durationMinutes
             }
-            .reduce(0.0) { $0 + $1.overtimeHours(categories: categories) }
+        }
+        return categories.compactMap { cat in
+            guard let minutes = minutesByCategory[cat.id], minutes > 0 else { return nil }
+            return CategoryStat(id: cat.id, category: cat, totalMinutes: minutes)
+        }.sorted { $0.totalMinutes > $1.totalMinutes }
+    }
+
+    func monthlyStats(for date: Date) -> [CategoryStat] {
+        let comps = calendar.dateComponents([.year, .month], from: date)
+        guard let firstOfMonth = calendar.date(from: comps),
+              let range = calendar.range(of: .day, in: .month, for: firstOfMonth) else { return [] }
+
+        var minutesByCategory: [UUID: Int] = [:]
+        for day in range {
+            guard let d = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) else { continue }
+            let s = schedule(for: d)
+            for block in s.timeBlocks {
+                minutesByCategory[block.categoryID, default: 0] += block.durationMinutes
+            }
+        }
+        return categories.compactMap { cat in
+            guard let minutes = minutesByCategory[cat.id], minutes > 0 else { return nil }
+            return CategoryStat(id: cat.id, category: cat, totalMinutes: minutes)
+        }.sorted { $0.totalMinutes > $1.totalMinutes }
     }
 
     // MARK: - Category Management
@@ -205,6 +339,43 @@ class ScheduleViewModel {
         categories.first { $0.id == id }
     }
 
+    // MARK: - Training Log
+
+    func trainingLog(for date: Date) -> TrainingLog {
+        let key = dateKey(for: date)
+        if let data = UserDefaults.standard.data(forKey: "\(trainingKey)_\(key)"),
+           let saved = try? JSONDecoder().decode(TrainingLog.self, from: data) {
+            return saved
+        }
+        return TrainingLog(date: date)
+    }
+
+    func updateTrainingLog(_ log: TrainingLog) {
+        let key = dateKey(for: log.date)
+        if let data = try? JSONEncoder().encode(log) {
+            UserDefaults.standard.set(data, forKey: "\(trainingKey)_\(key)")
+        }
+    }
+
+    func weeklyRunningDistance() -> Double {
+        weekDates.reduce(0.0) { $0 + trainingLog(for: $1).runningDistanceKm }
+    }
+
+    func monthlyRunningDistance(for date: Date) -> Double {
+        let comps = calendar.dateComponents([.year, .month], from: date)
+        guard let firstOfMonth = calendar.date(from: comps),
+              let range = calendar.range(of: .day, in: .month, for: firstOfMonth) else { return 0 }
+
+        return range.reduce(0.0) { total, day in
+            guard let d = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) else { return total }
+            return total + trainingLog(for: d).runningDistanceKm
+        }
+    }
+
+    func weeklyTrainingLogs() -> [TrainingLog] {
+        weekDates.map { trainingLog(for: $0) }.filter { $0.hasContent }
+    }
+
     // MARK: - Persistence
 
     private func saveCategories() {
@@ -223,26 +394,20 @@ class ScheduleViewModel {
         }
     }
 
-    private func saveSchedules() {
-        if let data = try? JSONEncoder().encode(weekSchedules) {
-            let key = scheduleKeyForWeek()
-            UserDefaults.standard.set(data, forKey: key)
-        }
-    }
+    func loadMonthSchedules(for date: Date) {
+        let comps = calendar.dateComponents([.year, .month], from: date)
+        guard let firstOfMonth = calendar.date(from: comps),
+              let range = calendar.range(of: .day, in: .month, for: firstOfMonth) else { return }
 
-    func loadSchedules() {
-        let key = scheduleKeyForWeek()
-        if let data = UserDefaults.standard.data(forKey: key),
-           let saved = try? JSONDecoder().decode([DaySchedule].self, from: data) {
-            weekSchedules = saved
-        } else {
-            weekSchedules = []
+        for day in range {
+            guard let d = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) else { continue }
+            let key = dateKey(for: d)
+            if scheduleCache[key] == nil {
+                if let data = UserDefaults.standard.data(forKey: "\(schedulesKey)_\(key)"),
+                   let saved = try? JSONDecoder().decode(DaySchedule.self, from: data) {
+                    scheduleCache[key] = saved
+                }
+            }
         }
-    }
-
-    private func scheduleKeyForWeek() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return "\(schedulesKey)_\(formatter.string(from: currentWeekStart))"
     }
 }
