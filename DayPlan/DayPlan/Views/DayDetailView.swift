@@ -1,0 +1,254 @@
+import SwiftUI
+
+struct DayDetailView: View {
+    @Bindable var viewModel: ScheduleViewModel
+    let date: Date
+
+    @State private var showingAddBlock = false
+    @State private var editingBlock: TimeBlock?
+    @State private var showingCopyAlert = false
+    @State private var showingPasteConfirm = false
+
+    var schedule: DaySchedule {
+        viewModel.schedule(for: date)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Date header
+                dateHeader
+
+                // Time bar
+                timeBarSection
+
+                // Stats row
+                statsRow
+
+                // Time blocks list
+                timeBlocksList
+
+                // Todo section
+                TodoSectionView(date: date, viewModel: viewModel)
+                    .padding(.horizontal)
+
+                Spacer(minLength: 80)
+            }
+        }
+        .navigationTitle(schedule.dateString)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        viewModel.copySchedule(from: date)
+                        showingCopyAlert = true
+                    } label: {
+                        Label("この日をコピー", systemImage: "doc.on.doc")
+                    }
+
+                    if viewModel.copiedDaySchedule != nil {
+                        Button {
+                            showingPasteConfirm = true
+                        } label: {
+                            Label("ペースト", systemImage: "doc.on.clipboard")
+                        }
+                    }
+
+                    Divider()
+
+                    if schedule.isWeekday && schedule.timeBlocks.isEmpty {
+                        Button {
+                            viewModel.addDefaultWorkSchedule(to: date)
+                        } label: {
+                            Label("定例勤務を追加 (9:00-17:30)", systemImage: "briefcase")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+
+                Button {
+                    showingAddBlock = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddBlock) {
+            TimeBlockEditView(viewModel: viewModel, date: date, onSave: {})
+                .presentationDetents([.large])
+        }
+        .sheet(item: $editingBlock) { block in
+            TimeBlockEditView(viewModel: viewModel, date: date, existingBlock: block, onSave: {
+                editingBlock = nil
+            })
+            .presentationDetents([.large])
+        }
+        .alert("コピーしました", isPresented: $showingCopyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("\(schedule.dateString) のスケジュールをコピーしました。他の日にペーストできます。")
+        }
+        .alert("ペーストしますか？", isPresented: $showingPasteConfirm) {
+            Button("ペースト", role: .destructive) {
+                viewModel.pasteSchedule(to: date)
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("この日のスケジュールをコピーした内容で置き換えます。")
+        }
+    }
+
+    // MARK: - Subviews
+
+    private var dateHeader: some View {
+        VStack(spacing: 4) {
+            let formatter = DateFormatter()
+
+            Text({
+                let f = DateFormatter()
+                f.locale = Locale(identifier: "ja_JP")
+                f.dateFormat = "yyyy年M月d日 (EEEE)"
+                return f.string(from: date)
+            }())
+            .font(.headline)
+            .foregroundColor(.primary)
+        }
+        .padding(.top, 8)
+    }
+
+    private var timeBarSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("タイムライン")
+                .font(.caption.bold())
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+
+            TimeBarView(schedule: schedule, categories: viewModel.categories, compact: false)
+                .padding(.horizontal)
+        }
+    }
+
+    private var statsRow: some View {
+        HStack(spacing: 12) {
+            statCard(
+                title: "残業",
+                value: String(format: "%.1f時間", schedule.overtimeHours(categories: viewModel.categories)),
+                icon: "clock.badge.exclamationmark",
+                color: .red
+            )
+
+            statCard(
+                title: "空き時間",
+                value: String(format: "%.1f時間", schedule.freeTimeHours),
+                icon: "clock",
+                color: .green
+            )
+
+            statCard(
+                title: "予定数",
+                value: "\(schedule.timeBlocks.count)件",
+                icon: "calendar",
+                color: .blue
+            )
+        }
+        .padding(.horizontal)
+    }
+
+    private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(color)
+            Text(value)
+                .font(.subheadline.bold())
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+    }
+
+    private var timeBlocksList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("予定一覧")
+                    .font(.subheadline.bold())
+                Spacer()
+            }
+            .padding(.horizontal)
+
+            if schedule.timeBlocks.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("予定がありません")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    if schedule.isWeekday {
+                        Button("定例勤務を追加") {
+                            viewModel.addDefaultWorkSchedule(to: date)
+                        }
+                        .font(.caption)
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                ForEach(schedule.sortedBlocks) { block in
+                    let category = viewModel.category(for: block.categoryID)
+
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(category?.color ?? .gray)
+                            .frame(width: 6, height: 44)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(block.title.isEmpty ? (category?.name ?? "不明") : block.title)
+                                .font(.subheadline.bold())
+                            Text(block.timeRangeString)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Text(String(format: "%.1fh", block.durationHours))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(.systemGray5))
+                            .cornerRadius(6)
+
+                        Menu {
+                            Button {
+                                editingBlock = block
+                            } label: {
+                                Label("編集", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                viewModel.removeTimeBlock(from: date, blockID: block.id)
+                            } label: {
+                                Label("削除", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .foregroundColor(.secondary)
+                                .frame(width: 28, height: 28)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+                }
+            }
+        }
+    }
+}
