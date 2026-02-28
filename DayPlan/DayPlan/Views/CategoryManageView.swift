@@ -4,8 +4,11 @@ struct CategoryManageView: View {
     @Bindable var viewModel: ScheduleViewModel
     @State private var showingAddCategorySheet = false
     @State private var showingAddQuoteSheet = false
+    @State private var editingCategory: ScheduleCategory?
     @State private var newCategoryName = ""
     @State private var newCategoryColor = Color.blue
+    @State private var editCategoryName = ""
+    @State private var editCategoryColor = Color.blue
     @State private var newQuoteText = ""
     @State private var newQuoteAuthor = ""
 
@@ -14,21 +17,32 @@ struct CategoryManageView: View {
             // Categories section
             Section("カテゴリ（長押しで並び替え）") {
                 ForEach(viewModel.categories) { category in
-                    HStack {
-                        Circle()
-                            .fill(category.color)
-                            .frame(width: 20, height: 20)
+                    Button {
+                        editCategoryName = category.name
+                        editCategoryColor = category.color
+                        editingCategory = category
+                    } label: {
+                        HStack {
+                            Circle()
+                                .fill(category.color)
+                                .frame(width: 20, height: 20)
 
-                        Text(category.name)
-                            .font(.body)
+                            Text(category.name)
+                                .font(.body)
+                                .foregroundColor(.primary)
 
-                        Spacer()
+                            Spacer()
 
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
+                            Image(systemName: "pencil")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+
+                            Image(systemName: "line.3.horizontal")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 }
                 .onDelete { indexSet in
                     for index in indexSet {
@@ -104,6 +118,34 @@ struct CategoryManageView: View {
                             newCategoryName = ""
                         }
                         .disabled(newCategoryName.isEmpty)
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+        .sheet(item: $editingCategory) { category in
+            NavigationStack {
+                Form {
+                    TextField("カテゴリ名", text: $editCategoryName)
+                    ColorPicker("カラー", selection: $editCategoryColor)
+                }
+                .navigationTitle("カテゴリを編集")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("キャンセル") {
+                            editingCategory = nil
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("保存") {
+                            var updated = category
+                            updated.name = editCategoryName
+                            updated.colorHex = editCategoryColor.toHex()
+                            viewModel.updateCategory(updated)
+                            editingCategory = nil
+                        }
+                        .disabled(editCategoryName.isEmpty)
                     }
                 }
             }
