@@ -12,7 +12,7 @@ struct CategoryManageView: View {
     var body: some View {
         List {
             // Categories section
-            Section("カテゴリ") {
+            Section("カテゴリ（長押しで並び替え）") {
                 ForEach(viewModel.categories) { category in
                     HStack {
                         Circle()
@@ -23,6 +23,10 @@ struct CategoryManageView: View {
                             .font(.body)
 
                         Spacer()
+
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
                     }
                     .padding(.vertical, 4)
                 }
@@ -30,6 +34,9 @@ struct CategoryManageView: View {
                     for index in indexSet {
                         viewModel.removeCategory(viewModel.categories[index])
                     }
+                }
+                .onMove { source, destination in
+                    viewModel.moveCategory(from: source, to: destination)
                 }
 
                 Button {
@@ -66,6 +73,11 @@ struct CategoryManageView: View {
             }
         }
         .navigationTitle("設定")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                EditButton()
+            }
+        }
         .sheet(isPresented: $showingAddCategorySheet) {
             NavigationStack {
                 Form {
