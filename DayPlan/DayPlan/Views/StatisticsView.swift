@@ -107,7 +107,7 @@ struct StatisticsView: View {
             Text("リマインダーへのアクセス")
                 .font(.headline)
 
-            if reminderManager.authorizationStatus == .denied {
+            if reminderManager.authorizationStatus == .denied || reminderManager.authorizationStatus == .restricted {
                 Text("リマインダーへのアクセスが拒否されています。\n設定アプリから許可してください。")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -130,20 +130,32 @@ struct StatisticsView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
 
-                Button {
-                    reminderManager.requestAccess()
-                } label: {
-                    Text("アクセスを許可する")
-                        .font(.subheadline.bold())
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
+                if reminderManager.isLoading {
+                    ProgressView()
                         .padding(.vertical, 12)
-                        .background(Color.blue)
-                        .cornerRadius(10)
+                } else {
+                    Button {
+                        reminderManager.requestAccess()
+                    } label: {
+                        Text("アクセスを許可する")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                    }
                 }
             }
 
-            Text("※ シミュレーターでは動作しない場合があります")
+            if let error = reminderManager.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+            }
+
+            Text("状態: \(reminderManager.authorizationStatus.statusText)")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -555,6 +567,19 @@ struct StatisticsView: View {
                     .padding(.vertical, 4)
                 }
             }
+        }
+    }
+}
+
+extension EKAuthorizationStatus {
+    var statusText: String {
+        switch self {
+        case .notDetermined: return "未確認"
+        case .restricted: return "制限あり"
+        case .denied: return "拒否"
+        case .fullAccess: return "フルアクセス"
+        case .writeOnly: return "書き込みのみ"
+        @unknown default: return "不明"
         }
     }
 }
