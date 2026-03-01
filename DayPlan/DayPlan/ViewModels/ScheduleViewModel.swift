@@ -298,6 +298,18 @@ class ScheduleViewModel {
         var totalHours: Double { Double(totalMinutes) / 60.0 }
     }
 
+    func dailyStats(for date: Date) -> [CategoryStat] {
+        let s = schedule(for: date)
+        var minutesByCategory: [UUID: Int] = [:]
+        for block in s.timeBlocks {
+            minutesByCategory[block.categoryID, default: 0] += block.durationMinutes
+        }
+        return categories.compactMap { cat in
+            guard let minutes = minutesByCategory[cat.id], minutes > 0 else { return nil }
+            return CategoryStat(id: cat.id, category: cat, totalMinutes: minutes)
+        }.sorted { $0.totalMinutes > $1.totalMinutes }
+    }
+
     func weeklyStats() -> [CategoryStat] {
         var minutesByCategory: [UUID: Int] = [:]
         for date in weekDates {

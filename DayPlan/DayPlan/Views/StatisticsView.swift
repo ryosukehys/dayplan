@@ -3,8 +3,8 @@ import EventKit
 
 struct StatisticsView: View {
     @Bindable var viewModel: ScheduleViewModel
+    @Binding var selectedTab: StatsTab
 
-    @State private var selectedTab: StatsTab = .statistics
     @State private var selectedPeriod: StatsPeriod = .weekly
     @State private var reminderManager = ReminderManager()
 
@@ -20,23 +20,13 @@ struct StatisticsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top tab picker
-            Picker("タブ", selection: $selectedTab) {
-                ForEach(StatsTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.top, 8)
-
             if selectedTab == .statistics {
                 statisticsContent
             } else {
                 remindersContent
             }
         }
-        .navigationTitle(selectedTab == .statistics ? "統計" : "TODO")
+        .navigationTitle(selectedTab == .statistics ? "統計" : "リマインダー")
         .simultaneousGesture(
             DragGesture(minimumDistance: 60)
                 .onEnded { value in
@@ -114,26 +104,52 @@ struct StatisticsView: View {
             Text("リマインダーへのアクセス")
                 .font(.headline)
 
-            Text("iPhoneのリマインダーを表示・完了するには\nアクセス許可が必要です。")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+            if reminderManager.authorizationStatus == .denied {
+                Text("リマインダーへのアクセスが拒否されています。\n設定アプリから許可してください。")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
 
-            Button {
-                reminderManager.requestAccess()
-            } label: {
-                Text("アクセスを許可する")
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.blue)
-                    .cornerRadius(10)
+                Button {
+                    reminderManager.requestAccess()
+                } label: {
+                    Text("設定を開く")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                }
+            } else {
+                Text("iPhoneのリマインダーを表示・完了するには\nアクセス許可が必要です。")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    reminderManager.requestAccess()
+                } label: {
+                    Text("アクセスを許可する")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                }
             }
+
+            Text("※ シミュレーターでは動作しない場合があります")
+                .font(.caption)
+                .foregroundColor(.secondary)
 
             Spacer()
         }
         .padding()
+        .onAppear {
+            reminderManager.checkAuthorization()
+        }
     }
 
     private var remindersList: some View {
