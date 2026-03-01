@@ -433,41 +433,47 @@ struct StatisticsView: View {
         Double(totalMinutes) / 60.0
     }
 
-    // MARK: - Overtime Summary
+    // MARK: - Tracking Summary
 
     private var overtimeSummaryCard: some View {
         VStack(spacing: 8) {
             HStack {
-                Text("残業時間")
+                Text("記録")
                     .font(.subheadline.bold())
                 Spacer()
             }
 
-            if selectedPeriod == .weekly {
-                HStack(spacing: 12) {
-                    overtimeStatBox(
-                        label: "予定",
-                        hours: viewModel.weeklyPlannedOvertimeHours(),
-                        color: .orange
-                    )
-                    overtimeStatBox(
-                        label: "実績",
-                        hours: viewModel.weeklyActualOvertimeHours(),
-                        color: .red
-                    )
+            ForEach(viewModel.trackingItems) { item in
+                VStack(spacing: 4) {
+                    HStack(spacing: 4) {
+                        Image(systemName: item.iconName)
+                            .font(.caption)
+                            .foregroundColor(item.color)
+                        Text(item.name)
+                            .font(.caption.bold())
+                        Spacer()
+                    }
 
-                    let catOvertime = viewModel.weeklyOvertimeHours()
-                    overtimeStatBox(
-                        label: "カテゴリ",
-                        hours: catOvertime,
-                        color: .purple
-                    )
-                }
-            } else {
-                let overtime = viewModel.monthlyOvertimeHours(for: viewModel.currentMonthDate)
-                HStack(spacing: 12) {
-                    overtimeStatBox(label: "予定", hours: overtime.planned, color: .orange)
-                    overtimeStatBox(label: "実績", hours: overtime.actual, color: .red)
+                    if selectedPeriod == .weekly {
+                        HStack(spacing: 12) {
+                            trackingStatBox(
+                                label: "予定",
+                                hours: viewModel.weeklyTrackingPlanned(for: item.id),
+                                color: .orange
+                            )
+                            trackingStatBox(
+                                label: "実績",
+                                hours: viewModel.weeklyTrackingActual(for: item.id),
+                                color: item.color
+                            )
+                        }
+                    } else {
+                        let data = viewModel.monthlyTrackingHours(for: viewModel.currentMonthDate, itemID: item.id)
+                        HStack(spacing: 12) {
+                            trackingStatBox(label: "予定", hours: data.planned, color: .orange)
+                            trackingStatBox(label: "実績", hours: data.actual, color: item.color)
+                        }
+                    }
                 }
             }
         }
@@ -477,7 +483,7 @@ struct StatisticsView: View {
         .padding(.horizontal)
     }
 
-    private func overtimeStatBox(label: String, hours: Double, color: Color) -> some View {
+    private func trackingStatBox(label: String, hours: Double, color: Color) -> some View {
         VStack(spacing: 2) {
             Text(label)
                 .font(.caption)

@@ -8,7 +8,7 @@ struct DayDetailView: View {
     @State private var editingBlock: TimeBlock?
     @State private var showingCopyAlert = false
     @State private var showingPasteConfirm = false
-    @State private var showingOvertimeEntry = false
+    @State private var showingTrackingEntry = false
     @State private var prefillStartHour: Int = 9
     @State private var prefillStartMinute: Int = 0
     @State private var prefillEndHour: Int = 10
@@ -64,9 +64,9 @@ struct DayDetailView: View {
                     Divider()
 
                     Button {
-                        showingOvertimeEntry = true
+                        showingTrackingEntry = true
                     } label: {
-                        Label("残業時間を入力", systemImage: "clock.badge.exclamationmark")
+                        Label("記録を入力", systemImage: "chart.bar.doc.horizontal")
                     }
 
                     if schedule.isWeekday && schedule.timeBlocks.isEmpty {
@@ -109,11 +109,11 @@ struct DayDetailView: View {
             })
             .presentationDetents([.large])
         }
-        .sheet(isPresented: $showingOvertimeEntry) {
+        .sheet(isPresented: $showingTrackingEntry) {
             NavigationStack {
-                OvertimeEntryView(viewModel: viewModel, date: date)
+                TrackingEntryView(viewModel: viewModel, date: date)
             }
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
         }
         .alert("コピーしました", isPresented: $showingCopyAlert) {
             Button("OK", role: .cancel) {}
@@ -237,27 +237,31 @@ struct DayDetailView: View {
     }
 
     private var statsRow: some View {
-        HStack(spacing: 8) {
-            // Tappable overtime planned
-            Button {
-                showingOvertimeEntry = true
-            } label: {
-                statCard(title: "残業予定", value: formatHoursMinutes(schedule.plannedOvertimeHours), icon: "clock", color: .orange)
-            }
-            .buttonStyle(.plain)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Tracking item cards
+                ForEach(viewModel.trackingItems) { item in
+                    let value = schedule.trackingValue(for: item.id)
+                    let displayHours = value.actual > 0 ? value.actualHours : value.plannedHours
 
-            // Tappable overtime actual
-            Button {
-                showingOvertimeEntry = true
-            } label: {
-                statCard(title: "残業実績", value: formatHoursMinutes(schedule.actualOvertimeHours), icon: "clock.badge.exclamationmark", color: .red)
-            }
-            .buttonStyle(.plain)
+                    Button {
+                        showingTrackingEntry = true
+                    } label: {
+                        statCard(
+                            title: item.name,
+                            value: formatHoursMinutes(displayHours),
+                            icon: item.iconName,
+                            color: item.color
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
 
-            statCard(title: "空き時間", value: formatHoursMinutes(schedule.freeTimeHours), icon: "clock", color: .green)
-            statCard(title: "予定数", value: "\(schedule.timeBlocks.count)件", icon: "calendar", color: .blue)
+                statCard(title: "空き時間", value: formatHoursMinutes(schedule.freeTimeHours), icon: "clock", color: .green)
+                statCard(title: "予定数", value: "\(schedule.timeBlocks.count)件", icon: "calendar", color: .blue)
+            }
+            .padding(.horizontal)
         }
-        .padding(.horizontal)
     }
 
     private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
@@ -271,8 +275,9 @@ struct DayDetailView: View {
                 .font(.system(size: 9))
                 .foregroundColor(.secondary)
         }
-        .frame(maxWidth: .infinity)
+        .frame(minWidth: 70)
         .padding(.vertical, 8)
+        .padding(.horizontal, 4)
         .background(Color(.systemGray6))
         .cornerRadius(10)
     }

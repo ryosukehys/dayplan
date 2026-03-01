@@ -3,6 +3,7 @@ import SwiftUI
 @Observable
 class ScheduleViewModel {
     var categories: [ScheduleCategory] = []
+    var trackingItems: [TrackingItem] = []
     var selectedDate: Date = Date()
     var copiedDaySchedule: DaySchedule?
     var currentWeekStart: Date = Date()
@@ -18,12 +19,14 @@ class ScheduleViewModel {
     private let schedulesKey = "savedSchedules"
     private let trainingKey = "savedTraining"
     private let quotesKey = "savedQuotes"
+    private let trackingItemsKey = "savedTrackingItems"
 
     // In-memory cache of loaded schedules keyed by "yyyy-MM-dd"
     private var scheduleCache: [String: DaySchedule] = [:]
 
     init() {
         loadCategories()
+        loadTrackingItems()
         loadQuotes()
         updateCurrentWeekStart()
         loadMonthSchedules(for: selectedDate)
@@ -240,26 +243,20 @@ class ScheduleViewModel {
         updateSchedule(daySchedule)
     }
 
-    // MARK: - Overtime (Planned / Actual)
+    // MARK: - Tracking Items
 
-    func updatePlannedOvertime(for date: Date, minutes: Int) {
+    func updateTrackingValue(for date: Date, itemID: UUID, planned: Int, actual: Int) {
         var daySchedule = schedule(for: date)
-        daySchedule.plannedOvertimeMinutes = minutes
+        daySchedule.setTrackingValue(TrackingValue(planned: planned, actual: actual), for: itemID)
         updateSchedule(daySchedule)
     }
 
-    func updateActualOvertime(for date: Date, minutes: Int) {
-        var daySchedule = schedule(for: date)
-        daySchedule.actualOvertimeMinutes = minutes
-        updateSchedule(daySchedule)
+    func weeklyTrackingPlanned(for itemID: UUID) -> Double {
+        weekDates.reduce(0.0) { $0 + schedule(for: $1).trackingValue(for: itemID).plannedHours }
     }
 
-    func weeklyPlannedOvertimeHours() -> Double {
-        weekDates.reduce(0.0) { $0 + schedule(for: $1).plannedOvertimeHours }
-    }
-
-    func weeklyActualOvertimeHours() -> Double {
-        weekDates.reduce(0.0) { $0 + schedule(for: $1).actualOvertimeHours }
+    func weeklyTrackingActual(for itemID: UUID) -> Double {
+        weekDates.reduce(0.0) { $0 + schedule(for: $1).trackingValue(for: itemID).actualHours }
     }
 
     func weeklyOvertimeMinutes() -> Int {
@@ -278,15 +275,55 @@ class ScheduleViewModel {
         return range.compactMap { day in
             guard let d = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) else { return nil }
             let s = schedule(for: d)
-            return s.timeBlocks.isEmpty && s.plannedOvertimeMinutes == 0 && s.actualOvertimeMinutes == 0 ? nil : s
+            return s.timeBlocks.isEmpty && !s.hasAnyTrackingData ? nil : s
         }
     }
 
-    func monthlyOvertimeHours(for date: Date) -> (planned: Double, actual: Double) {
+    func monthlyTrackingHours(for date: Date, itemID: UUID) -> (planned: Double, actual: Double) {
         let schedules = monthlySchedules(for: date)
-        let planned = schedules.reduce(0.0) { $0 + $1.plannedOvertimeHours }
-        let actual = schedules.reduce(0.0) { $0 + $1.actualOvertimeHours }
+        let planned = schedules.reduce(0.0) { $0 + $1.trackingValue(for: itemID).plannedHours }
+        let actual = schedules.reduce(0.0) { $0 + $1.trackingValue(for: itemID).actualHours }
         return (planned, actual)
+    }
+
+    // MARK: - Tracking Item CRUD
+
+    func addTrackingItem(_ item: TrackingItem) {
+        trackingItems.append(item)
+        saveTrackingItems()
+    }
+
+    func removeTrackingItem(_ item: TrackingItem) {
+        trackingItems.removeAll { $0.id == item.id }
+        saveTrackingItems()
+    }
+
+    func updateTrackingItem(_ item: TrackingItem) {
+        if let index = trackingItems.firstIndex(where: { $0.id == item.id }) {
+            trackingItems[index] = item
+            saveTrackingItems()
+        }
+    }
+
+    func moveTrackingItem(from source: IndexSet, to destination: Int) {
+        trackingItems.move(fromOffsets: source, toOffset: destination)
+        saveTrackingItems()
+    }
+
+    private func saveTrackingItems() {
+        if let data = try? JSONEncoder().encode(trackingItems) {
+            UserDefaults.standard.set(data, forKey: trackingItemsKey)
+        }
+    }
+
+    private func loadTrackingItems() {
+        if let data = UserDefaults.standard.data(forKey: trackingItemsKey),
+           let saved = try? JSONDecoder().decode([TrackingItem].self, from: data) {
+            trackingItems = saved
+        } else {
+            trackingItems = TrackingItem.defaults
+            saveTrackingItems()
+        }
     }
 
     // MARK: - Statistics

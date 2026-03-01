@@ -26,6 +26,7 @@
 		AA000017 /* TrainingLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017; };
 		AA000018 /* Quote.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100018; };
 		AA000019 /* ReminderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100019; };
+		AA000020 /* TrackingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100020; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 		AA100017 /* TrainingLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLogView.swift; sourceTree = "<group>"; };
 		AA100018 /* Quote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quote.swift; sourceTree = "<group>"; };
 		AA100019 /* ReminderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderManager.swift; sourceTree = "<group>"; };
+		AA100020 /* TrackingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingItem.swift; sourceTree = "<group>"; };
 		AA200001 /* DayPlan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DayPlan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -90,6 +92,7 @@
 				AA100006 /* Category.swift */,
 				AA100014 /* TrainingLog.swift */,
 				AA100018 /* Quote.swift */,
+				AA100020 /* TrackingItem.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -216,6 +219,7 @@
 				AA000017 /* TrainingLogView.swift in Sources */,
 				AA000018 /* Quote.swift in Sources */,
 				AA000019 /* ReminderManager.swift in Sources */,
+				AA000020 /* TrackingItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

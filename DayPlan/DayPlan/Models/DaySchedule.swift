@@ -6,8 +6,7 @@ struct DaySchedule: Identifiable, Codable {
     var timeBlocks: [TimeBlock]
     var todos: [String]
     var todoCompleted: [Bool]
-    var plannedOvertimeMinutes: Int
-    var actualOvertimeMinutes: Int
+    var trackingValues: [String: TrackingValue]
     var dayEvent: String
 
     init(
@@ -16,8 +15,7 @@ struct DaySchedule: Identifiable, Codable {
         timeBlocks: [TimeBlock] = [],
         todos: [String] = ["", "", ""],
         todoCompleted: [Bool] = [false, false, false],
-        plannedOvertimeMinutes: Int = 0,
-        actualOvertimeMinutes: Int = 0,
+        trackingValues: [String: TrackingValue] = [:],
         dayEvent: String = ""
     ) {
         self.id = id
@@ -25,9 +23,14 @@ struct DaySchedule: Identifiable, Codable {
         self.timeBlocks = timeBlocks
         self.todos = todos
         self.todoCompleted = todoCompleted
-        self.plannedOvertimeMinutes = plannedOvertimeMinutes
-        self.actualOvertimeMinutes = actualOvertimeMinutes
+        self.trackingValues = trackingValues
         self.dayEvent = dayEvent
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, date, timeBlocks, todos, todoCompleted
+        case plannedOvertimeMinutes, actualOvertimeMinutes
+        case trackingValues, dayEvent
     }
 
     init(from decoder: Decoder) throws {
@@ -37,10 +40,47 @@ struct DaySchedule: Identifiable, Codable {
         timeBlocks = try container.decode([TimeBlock].self, forKey: .timeBlocks)
         todos = try container.decode([String].self, forKey: .todos)
         todoCompleted = try container.decodeIfPresent([Bool].self, forKey: .todoCompleted) ?? [false, false, false]
-        plannedOvertimeMinutes = try container.decode(Int.self, forKey: .plannedOvertimeMinutes)
-        actualOvertimeMinutes = try container.decode(Int.self, forKey: .actualOvertimeMinutes)
         dayEvent = try container.decode(String.self, forKey: .dayEvent)
+
+        // New format
+        var values = try container.decodeIfPresent([String: TrackingValue].self, forKey: .trackingValues) ?? [:]
+
+        // Migrate old overtime fields
+        let oldPlanned = try container.decodeIfPresent(Int.self, forKey: .plannedOvertimeMinutes) ?? 0
+        let oldActual = try container.decodeIfPresent(Int.self, forKey: .actualOvertimeMinutes) ?? 0
+        let overtimeKey = TrackingItem.defaultOvertimeID.uuidString
+        if values[overtimeKey] == nil && (oldPlanned > 0 || oldActual > 0) {
+            values[overtimeKey] = TrackingValue(planned: oldPlanned, actual: oldActual)
+        }
+        trackingValues = values
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(date, forKey: .date)
+        try container.encode(timeBlocks, forKey: .timeBlocks)
+        try container.encode(todos, forKey: .todos)
+        try container.encode(todoCompleted, forKey: .todoCompleted)
+        try container.encode(trackingValues, forKey: .trackingValues)
+        try container.encode(dayEvent, forKey: .dayEvent)
+    }
+
+    // MARK: - Tracking Value Helpers
+
+    func trackingValue(for itemID: UUID) -> TrackingValue {
+        trackingValues[itemID.uuidString] ?? TrackingValue()
+    }
+
+    mutating func setTrackingValue(_ value: TrackingValue, for itemID: UUID) {
+        trackingValues[itemID.uuidString] = value
+    }
+
+    var hasAnyTrackingData: Bool {
+        trackingValues.values.contains { $0.hasData }
+    }
+
+    // MARK: - Computed Properties
 
     var sortedBlocks: [TimeBlock] {
         timeBlocks.sorted { $0.startTotalMinutes < $1.startTotalMinutes }
@@ -67,14 +107,6 @@ struct DaySchedule: Identifiable, Codable {
 
     func overtimeHours(categories: [ScheduleCategory]) -> Double {
         Double(overtimeMinutes(categories: categories)) / 60.0
-    }
-
-    var plannedOvertimeHours: Double {
-        Double(plannedOvertimeMinutes) / 60.0
-    }
-
-    var actualOvertimeHours: Double {
-        Double(actualOvertimeMinutes) / 60.0
     }
 
     var dateString: String {
