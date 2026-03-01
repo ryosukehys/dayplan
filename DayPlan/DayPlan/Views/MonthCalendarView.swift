@@ -249,7 +249,7 @@ struct MonthCalendarView: View {
                     Text("予定")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text(String(format: "%.1f時間", overtime.planned))
+                    Text(formatHoursMinutesJP(overtime.planned))
                         .font(.title3.bold())
                         .foregroundColor(.orange)
                 }
@@ -262,7 +262,7 @@ struct MonthCalendarView: View {
                     Text("実績")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text(String(format: "%.1f時間", overtime.actual))
+                    Text(formatHoursMinutesJP(overtime.actual))
                         .font(.title3.bold())
                         .foregroundColor(.red)
                 }
@@ -276,7 +276,7 @@ struct MonthCalendarView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     let diff = overtime.actual - overtime.planned
-                    Text(String(format: "%+.1f時間", diff))
+                    Text(formatSignedHoursMinutesJP(diff))
                         .font(.title3.bold())
                         .foregroundColor(diff > 0 ? .red : .green)
                 }

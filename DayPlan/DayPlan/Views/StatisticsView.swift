@@ -1,9 +1,17 @@
 import SwiftUI
+import EventKit
 
 struct StatisticsView: View {
     @Bindable var viewModel: ScheduleViewModel
 
+    @State private var selectedTab: StatsTab = .statistics
     @State private var selectedPeriod: StatsPeriod = .weekly
+    @State private var reminderManager = ReminderManager()
+
+    enum StatsTab: String, CaseIterable {
+        case statistics = "統計"
+        case reminders = "TODO"
+    }
 
     enum StatsPeriod: String, CaseIterable {
         case weekly = "週間"
@@ -11,9 +19,58 @@ struct StatisticsView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            // Top tab picker
+            Picker("タブ", selection: $selectedTab) {
+                ForEach(StatsTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+
+            if selectedTab == .statistics {
+                statisticsContent
+            } else {
+                remindersContent
+            }
+        }
+        .navigationTitle(selectedTab == .statistics ? "統計" : "TODO")
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 60)
+                .onEnded { value in
+                    let horizontal = abs(value.translation.width)
+                    let vertical = abs(value.translation.height)
+                    guard horizontal > vertical else { return }
+                    if selectedTab == .statistics {
+                        if value.translation.width < -60 {
+                            withAnimation {
+                                if selectedPeriod == .weekly {
+                                    viewModel.goToNextWeek()
+                                } else {
+                                    viewModel.goToNextMonth()
+                                }
+                            }
+                        } else if value.translation.width > 60 {
+                            withAnimation {
+                                if selectedPeriod == .weekly {
+                                    viewModel.goToPreviousWeek()
+                                } else {
+                                    viewModel.goToPreviousMonth()
+                                }
+                            }
+                        }
+                    }
+                }
+        )
+    }
+
+    // MARK: - Statistics Content
+
+    private var statisticsContent: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Period picker
                 Picker("期間", selection: $selectedPeriod) {
                     ForEach(StatsPeriod.allCases, id: \.self) { period in
                         Text(period.rawValue)
@@ -22,46 +79,242 @@ struct StatisticsView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
 
-                // Period navigation
                 periodNavigation
-
-                // Overtime summary
                 overtimeSummaryCard
-
-                // Category breakdown bar chart
                 categoryBreakdown
-
-                // Category detail list
                 categoryDetailList
             }
             .padding(.vertical)
         }
-        .navigationTitle("統計")
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 60)
-                .onEnded { value in
-                    let horizontal = abs(value.translation.width)
-                    let vertical = abs(value.translation.height)
-                    guard horizontal > vertical else { return }
-                    if value.translation.width < -60 {
-                        withAnimation {
-                            if selectedPeriod == .weekly {
-                                viewModel.goToNextWeek()
-                            } else {
-                                viewModel.goToNextMonth()
+    }
+
+    // MARK: - Reminders Content
+
+    private var remindersContent: some View {
+        Group {
+            if !reminderManager.hasAccess {
+                reminderAccessRequest
+            } else if reminderManager.isLoading {
+                ProgressView("読み込み中...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                remindersList
+            }
+        }
+    }
+
+    private var reminderAccessRequest: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            Image(systemName: "checklist")
+                .font(.system(size: 48))
+                .foregroundColor(.blue)
+
+            Text("リマインダーへのアクセス")
+                .font(.headline)
+
+            Text("iPhoneのリマインダーを表示・完了するには\nアクセス許可が必要です。")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                reminderManager.requestAccess()
+            } label: {
+                Text("アクセスを許可する")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .cornerRadius(10)
+            }
+
+            Spacer()
+        }
+        .padding()
+    }
+
+    private var remindersList: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                // List picker
+                if reminderManager.reminderLists.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            listFilterChip(id: nil, name: "すべて")
+
+                            ForEach(reminderManager.reminderLists, id: \.calendarIdentifier) { list in
+                                listFilterChip(id: list.calendarIdentifier, name: list.title)
                             }
                         }
-                    } else if value.translation.width > 60 {
-                        withAnimation {
-                            if selectedPeriod == .weekly {
-                                viewModel.goToPreviousWeek()
-                            } else {
-                                viewModel.goToPreviousMonth()
+                        .padding(.horizontal)
+                    }
+                }
+
+                // Summary
+                HStack(spacing: 16) {
+                    VStack(spacing: 2) {
+                        Text("\(reminderManager.incompleteCount)")
+                            .font(.title2.bold())
+                            .foregroundColor(.blue)
+                        Text("未完了")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(10)
+
+                    VStack(spacing: 2) {
+                        Text("\(reminderManager.reminders.count - reminderManager.incompleteCount)")
+                            .font(.title2.bold())
+                            .foregroundColor(.green)
+                        Text("完了済み")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal)
+
+                // Reminder items
+                if reminderManager.reminders.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("リマインダーがありません")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                } else {
+                    let incomplete = reminderManager.reminders.filter { !$0.isCompleted }
+                    if !incomplete.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("未完了 (\(incomplete.count))")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                                .padding(.bottom, 4)
+
+                            ForEach(incomplete, id: \.calendarItemIdentifier) { reminder in
+                                reminderRow(reminder)
+                            }
+                        }
+                    }
+
+                    let completed = reminderManager.reminders.filter { $0.isCompleted }
+                    if !completed.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("完了済み (\(completed.count))")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                                .padding(.top, 8)
+                                .padding(.bottom, 4)
+
+                            ForEach(completed, id: \.calendarItemIdentifier) { reminder in
+                                reminderRow(reminder)
                             }
                         }
                     }
                 }
-        )
+            }
+            .padding(.vertical)
+        }
+        .refreshable {
+            reminderManager.fetchReminders()
+        }
+    }
+
+    private func listFilterChip(id: String?, name: String) -> some View {
+        let isSelected = (id == nil && reminderManager.selectedListID == nil) ||
+            (id != nil && reminderManager.selectedListID == id)
+
+        return Button {
+            reminderManager.selectedListID = id
+            reminderManager.fetchReminders()
+        } label: {
+            Text(name)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isSelected ? Color.blue : Color(.systemGray5))
+                .foregroundColor(isSelected ? .white : .primary)
+                .cornerRadius(16)
+        }
+    }
+
+    private func reminderRow(_ reminder: EKReminder) -> some View {
+        Button {
+            reminderManager.toggleCompletion(reminder)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: reminder.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(reminder.isCompleted ? .green : Color(.systemGray3))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(reminder.title ?? "無題")
+                        .font(.subheadline)
+                        .foregroundColor(reminder.isCompleted ? .secondary : .primary)
+                        .strikethrough(reminder.isCompleted)
+                        .lineLimit(2)
+
+                    if let dueDate = reminder.dueDateComponents,
+                       let date = Calendar.current.date(from: dueDate) {
+                        Text(dueDateString(date))
+                            .font(.caption)
+                            .foregroundColor(isOverdue(date) && !reminder.isCompleted ? .red : .secondary)
+                    }
+
+                    if let notes = reminder.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                if let calendar = reminder.calendar {
+                    Circle()
+                        .fill(Color(cgColor: calendar.cgColor))
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func dueDateString(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "今日"
+        } else if calendar.isDateInYesterday(date) {
+            return "昨日"
+        } else if calendar.isDateInTomorrow(date) {
+            return "明日"
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "M/d (E)"
+        return formatter.string(from: date)
+    }
+
+    private func isOverdue(_ date: Date) -> Bool {
+        date < Calendar.current.startOfDay(for: Date())
     }
 
     // MARK: - Period Navigation
@@ -169,7 +422,7 @@ struct StatisticsView: View {
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Text(String(format: "%.1fh", hours))
+            Text(formatHoursMinutes(hours))
                 .font(.title3.bold())
                 .foregroundColor(color)
         }
@@ -187,7 +440,7 @@ struct StatisticsView: View {
                 Text("カテゴリ別時間配分")
                     .font(.subheadline.bold())
                 Spacer()
-                Text(String(format: "合計 %.1f時間", totalHours))
+                Text("合計 \(formatHoursMinutesJP(totalHours))")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -268,7 +521,7 @@ struct StatisticsView: View {
                         }
                         .frame(width: 80, height: 16)
 
-                        Text(String(format: "%.1fh", stat.totalHours))
+                        Text(formatHoursMinutes(stat.totalHours))
                             .font(.subheadline.bold())
                             .frame(width: 50, alignment: .trailing)
 

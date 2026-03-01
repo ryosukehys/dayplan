@@ -162,7 +162,7 @@ struct WeekView: View {
                     Text("予定")
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
-                    Text(String(format: "%.1fh", viewModel.weeklyPlannedOvertimeHours()))
+                    Text(formatHoursMinutes(viewModel.weeklyPlannedOvertimeHours()))
                         .font(.caption.bold())
                         .foregroundColor(.orange)
                 }
@@ -171,7 +171,7 @@ struct WeekView: View {
                     Text("実績")
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
-                    Text(String(format: "%.1fh", viewModel.weeklyActualOvertimeHours()))
+                    Text(formatHoursMinutes(viewModel.weeklyActualOvertimeHours()))
                         .font(.caption.bold())
                         .foregroundColor(.red)
                 }
@@ -209,16 +209,23 @@ struct WeekView: View {
             .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 2) {
-                TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true)
+                if !schedule.dayEvent.isEmpty {
+                    Text(schedule.dayEvent)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.orange)
+                        .lineLimit(1)
+                }
+
+                TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true, showCurrentTime: isToday)
 
                 HStack {
                     if schedule.overtimeHours(categories: viewModel.categories) > 0 {
-                        Text(String(format: "残業 %.1fh", schedule.overtimeHours(categories: viewModel.categories)))
+                        Text("残業 \(formatHoursMinutes(schedule.overtimeHours(categories: viewModel.categories)))")
                             .font(.system(size: 9))
                             .foregroundColor(.red)
                     }
 
-                    Text(String(format: "空き %.1fh", schedule.freeTimeHours))
+                    Text("空き \(formatHoursMinutes(schedule.freeTimeHours))")
                         .font(.system(size: 9))
                         .foregroundColor(.green)
 

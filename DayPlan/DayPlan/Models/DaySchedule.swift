@@ -5,6 +5,7 @@ struct DaySchedule: Identifiable, Codable {
     var date: Date
     var timeBlocks: [TimeBlock]
     var todos: [String]
+    var todoCompleted: [Bool]
     var plannedOvertimeMinutes: Int
     var actualOvertimeMinutes: Int
     var dayEvent: String
@@ -14,6 +15,7 @@ struct DaySchedule: Identifiable, Codable {
         date: Date,
         timeBlocks: [TimeBlock] = [],
         todos: [String] = ["", "", ""],
+        todoCompleted: [Bool] = [false, false, false],
         plannedOvertimeMinutes: Int = 0,
         actualOvertimeMinutes: Int = 0,
         dayEvent: String = ""
@@ -22,9 +24,22 @@ struct DaySchedule: Identifiable, Codable {
         self.date = date
         self.timeBlocks = timeBlocks
         self.todos = todos
+        self.todoCompleted = todoCompleted
         self.plannedOvertimeMinutes = plannedOvertimeMinutes
         self.actualOvertimeMinutes = actualOvertimeMinutes
         self.dayEvent = dayEvent
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        date = try container.decode(Date.self, forKey: .date)
+        timeBlocks = try container.decode([TimeBlock].self, forKey: .timeBlocks)
+        todos = try container.decode([String].self, forKey: .todos)
+        todoCompleted = try container.decodeIfPresent([Bool].self, forKey: .todoCompleted) ?? [false, false, false]
+        plannedOvertimeMinutes = try container.decode(Int.self, forKey: .plannedOvertimeMinutes)
+        actualOvertimeMinutes = try container.decode(Int.self, forKey: .actualOvertimeMinutes)
+        dayEvent = try container.decode(String.self, forKey: .dayEvent)
     }
 
     var sortedBlocks: [TimeBlock] {
