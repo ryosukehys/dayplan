@@ -201,6 +201,11 @@ struct WeekView: View {
                         .lineLimit(1)
                 }
 
+                // Current activity for today
+                if isToday {
+                    currentActivityLabel(for: schedule)
+                }
+
                 TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true, showCurrentTime: isToday)
 
                 HStack {
@@ -314,6 +319,52 @@ struct WeekView: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - Current Activity
+
+    @ViewBuilder
+    private func currentActivityLabel(for schedule: DaySchedule) -> some View {
+        let now = Date()
+        let cal = Calendar.current
+        let nowMinutes = cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
+
+        let currentBlock = schedule.sortedBlocks.first { block in
+            nowMinutes >= block.startTotalMinutes && nowMinutes < block.endTotalMinutes
+        }
+        let nextBlock = schedule.sortedBlocks.first { block in
+            block.startTotalMinutes > nowMinutes
+        }
+
+        if let block = currentBlock {
+            let category = viewModel.category(for: block.categoryID)
+            let remaining = block.endTotalMinutes - nowMinutes
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(category?.color ?? .gray)
+                    .frame(width: 6, height: 6)
+                Text(block.title.isEmpty ? (category?.name ?? "") : block.title)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(category?.color ?? .primary)
+                Text("残り\(remaining)分")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+            }
+        } else if let next = nextBlock {
+            let category = viewModel.category(for: next.categoryID)
+            let until = next.startTotalMinutes - nowMinutes
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 7))
+                    .foregroundColor(.secondary)
+                Text(next.title.isEmpty ? (category?.name ?? "") : next.title)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Text("\(until)分後")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 
     // MARK: - Helpers

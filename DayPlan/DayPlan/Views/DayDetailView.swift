@@ -28,6 +28,7 @@ struct DayDetailView: View {
             VStack(spacing: 16) {
                 dateHeader
                 dayEventSection
+                currentActivityCard
                 timeBarSection
                 statsRow
                 timeBlocksList
@@ -234,6 +235,90 @@ struct DayDetailView: View {
             get: { viewModel.schedule(for: date).dayEvent },
             set: { viewModel.updateDayEvent(for: date, event: $0) }
         )
+    }
+
+    @ViewBuilder
+    private var currentActivityCard: some View {
+        if Calendar.current.isDateInToday(date) {
+            let now = Date()
+            let cal = Calendar.current
+            let nowMinutes = cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
+
+            let currentBlock = schedule.sortedBlocks.first { block in
+                nowMinutes >= block.startTotalMinutes && nowMinutes < block.endTotalMinutes
+            }
+            let nextBlock = schedule.sortedBlocks.first { block in
+                block.startTotalMinutes > nowMinutes
+            }
+
+            HStack(spacing: 10) {
+                if let block = currentBlock {
+                    let category = viewModel.category(for: block.categoryID)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(category?.color ?? .gray)
+                        .frame(width: 5)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("NOW")
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(category?.color ?? .blue)
+                        Text(block.title.isEmpty ? (category?.name ?? "不明") : block.title)
+                            .font(.subheadline.bold())
+                        Text(block.timeRangeString)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    let remaining = block.endTotalMinutes - nowMinutes
+                    Text("残り\(remaining)分")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(.systemGray5))
+                        .cornerRadius(6)
+                } else if let next = nextBlock {
+                    let category = viewModel.category(for: next.categoryID)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4))
+                        .frame(width: 5)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("NEXT")
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(.secondary)
+                        Text(next.title.isEmpty ? (category?.name ?? "不明") : next.title)
+                            .font(.subheadline.bold())
+                        Text(next.timeRangeString)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    let until = next.startTotalMinutes - nowMinutes
+                    Text("\(until)分後")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(.systemGray5))
+                        .cornerRadius(6)
+                }
+            }
+            .frame(minHeight: currentBlock != nil || nextBlock != nil ? 44 : 0)
+            .padding(.horizontal, 12)
+            .padding(.vertical, currentBlock != nil || nextBlock != nil ? 10 : 0)
+            .background(
+                currentBlock != nil
+                    ? (viewModel.category(for: currentBlock!.categoryID)?.color ?? .blue).opacity(0.1)
+                    : Color(.systemGray6).opacity(nextBlock != nil ? 1 : 0)
+            )
+            .cornerRadius(12)
+            .padding(.horizontal)
+        }
     }
 
     private var statsRow: some View {
