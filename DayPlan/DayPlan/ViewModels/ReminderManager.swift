@@ -92,6 +92,23 @@ class ReminderManager {
         }
     }
 
+    func addReminder(title: String, listID: String? = nil) {
+        let reminder = EKReminder(eventStore: eventStore)
+        reminder.title = title
+        if let listID,
+           let calendar = reminderLists.first(where: { $0.calendarIdentifier == listID }) {
+            reminder.calendar = calendar
+        } else {
+            reminder.calendar = eventStore.defaultCalendarForNewReminders()
+        }
+        do {
+            try eventStore.save(reminder, commit: true)
+            fetchReminders()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func toggleCompletion(_ reminder: EKReminder) {
         reminder.isCompleted = !reminder.isCompleted
         if reminder.isCompleted {

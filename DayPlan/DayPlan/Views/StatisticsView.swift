@@ -7,6 +7,8 @@ struct StatisticsView: View {
 
     @State private var selectedPeriod: StatsPeriod = .weekly
     @State private var reminderManager = ReminderManager()
+    @State private var newReminderTitle = ""
+    @State private var showingAddReminder = false
 
     enum StatsTab: String, CaseIterable {
         case statistics = "統計"
@@ -214,6 +216,26 @@ struct StatisticsView: View {
                 }
                 .padding(.horizontal)
 
+                // Add reminder
+                HStack(spacing: 8) {
+                    TextField("新しいリマインダー", text: $newReminderTitle)
+                        .font(.subheadline)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            addNewReminder()
+                        }
+
+                    Button {
+                        addNewReminder()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(newReminderTitle.isEmpty ? .gray : .blue)
+                    }
+                    .disabled(newReminderTitle.isEmpty)
+                }
+                .padding(.horizontal)
+
                 // Reminder items
                 if reminderManager.reminders.isEmpty {
                     VStack(spacing: 8) {
@@ -264,6 +286,13 @@ struct StatisticsView: View {
         .refreshable {
             reminderManager.fetchReminders()
         }
+    }
+
+    private func addNewReminder() {
+        let title = newReminderTitle.trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty else { return }
+        reminderManager.addReminder(title: title, listID: reminderManager.selectedListID)
+        newReminderTitle = ""
     }
 
     private func listFilterChip(id: String?, name: String) -> some View {
