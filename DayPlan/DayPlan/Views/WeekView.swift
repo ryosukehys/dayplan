@@ -122,61 +122,46 @@ struct WeekView: View {
 
     private var weekSummaryCard: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("今週の残業")
-                        .font(.caption)
+            if !viewModel.trackingItems.isEmpty {
+                HStack {
+                    Text("今週の記録")
+                        .font(.caption.bold())
                         .foregroundColor(.secondary)
-                    Text(String(format: "%.1f 時間", viewModel.weeklyOvertimeHours()))
-                        .font(.title2.bold())
-                        .foregroundColor(viewModel.weeklyOvertimeHours() > 0 ? .red : .primary)
+                    Spacer()
                 }
 
-                Spacer()
+                ForEach(viewModel.trackingItems) { item in
+                    HStack(spacing: 12) {
+                        HStack(spacing: 4) {
+                            Image(systemName: item.iconName)
+                                .font(.system(size: 10))
+                                .foregroundColor(item.color)
+                            Text(item.name)
+                                .font(.caption.bold())
+                        }
+                        .frame(width: 90, alignment: .leading)
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("残業目安")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        HStack(spacing: 4) {
+                            Text("予定")
+                                .font(.system(size: 9))
+                                .foregroundColor(.secondary)
+                            Text(formatHoursMinutes(viewModel.weeklyTrackingPlanned(for: item.id)))
+                                .font(.caption.bold())
+                                .foregroundColor(.orange)
+                        }
 
-                    let overtime = viewModel.weeklyOvertimeHours()
-                    if overtime <= 5 {
-                        Text("余裕あり")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.green)
-                    } else if overtime <= 10 {
-                        Text("やや多い")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.orange)
-                    } else {
-                        Text("早めに帰ろう!")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.red)
+                        HStack(spacing: 4) {
+                            Text("実績")
+                                .font(.system(size: 9))
+                                .foregroundColor(.secondary)
+                            Text(formatHoursMinutes(viewModel.weeklyTrackingActual(for: item.id)))
+                                .font(.caption.bold())
+                                .foregroundColor(item.color)
+                        }
+
+                        Spacer()
                     }
                 }
-            }
-
-            // Planned vs Actual overtime
-            HStack(spacing: 12) {
-                HStack(spacing: 4) {
-                    Text("予定")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                    Text(formatHoursMinutes(viewModel.weeklyPlannedOvertimeHours()))
-                        .font(.caption.bold())
-                        .foregroundColor(.orange)
-                }
-
-                HStack(spacing: 4) {
-                    Text("実績")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                    Text(formatHoursMinutes(viewModel.weeklyActualOvertimeHours()))
-                        .font(.caption.bold())
-                        .foregroundColor(.red)
-                }
-
-                Spacer()
             }
         }
         .padding()
