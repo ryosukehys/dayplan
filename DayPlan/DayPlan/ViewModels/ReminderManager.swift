@@ -8,16 +8,14 @@ class ReminderManager {
     var selectedListID: String?
     var authorizationStatus: EKAuthorizationStatus = .notDetermined
     var isLoading = false
+    private var isInitialized = false
 
-    private let eventStore = EKEventStore()
-
-    init() {
-        checkAuthorization()
-    }
+    private lazy var eventStore = EKEventStore()
 
     func checkAuthorization() {
         authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
-        if hasAccess {
+        if hasAccess && !isInitialized {
+            isInitialized = true
             fetchLists()
             fetchReminders()
         }

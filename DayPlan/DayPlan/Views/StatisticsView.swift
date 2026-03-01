@@ -91,6 +91,9 @@ struct StatisticsView: View {
                 remindersList
             }
         }
+        .onAppear {
+            reminderManager.checkAuthorization()
+        }
     }
 
     private var reminderAccessRequest: some View {
