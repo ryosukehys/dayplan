@@ -63,7 +63,10 @@ class ReminderManager {
     }
 
     func fetchReminders() {
-        isLoading = true
+        // 初回のみローディング表示（データがある場合はバックグラウンド更新）
+        if reminders.isEmpty {
+            isLoading = true
+        }
         let calendars: [EKCalendar]?
         if let selectedID = selectedListID,
            let cal = reminderLists.first(where: { $0.calendarIdentifier == selectedID }) {
