@@ -9,6 +9,7 @@ struct CategoryManageView: View {
     @State private var newCategoryColor = Color.blue
     @State private var editCategoryName = ""
     @State private var editCategoryColor = Color.blue
+    @State private var showingDeleteConfirm = false
     @State private var newQuoteText = ""
     @State private var newQuoteAuthor = ""
 
@@ -128,6 +129,18 @@ struct CategoryManageView: View {
                 Form {
                     TextField("カテゴリ名", text: $editCategoryName)
                     ColorPicker("カラー", selection: $editCategoryColor)
+
+                    Section {
+                        Button(role: .destructive) {
+                            showingDeleteConfirm = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label("このカテゴリを削除", systemImage: "trash")
+                                Spacer()
+                            }
+                        }
+                    }
                 }
                 .navigationTitle("カテゴリを編集")
                 .navigationBarTitleDisplayMode(.inline)
@@ -147,6 +160,15 @@ struct CategoryManageView: View {
                         }
                         .disabled(editCategoryName.isEmpty)
                     }
+                }
+                .alert("カテゴリを削除しますか？", isPresented: $showingDeleteConfirm) {
+                    Button("削除", role: .destructive) {
+                        viewModel.removeCategory(category)
+                        editingCategory = nil
+                    }
+                    Button("キャンセル", role: .cancel) {}
+                } message: {
+                    Text("「\(category.name)」を削除します。このカテゴリを使用している予定のカテゴリ情報は失われます。")
                 }
             }
             .presentationDetents([.medium])
