@@ -99,6 +99,9 @@ struct MonthCalendarView: View {
 
             monthTrackingSummary
                 .padding()
+
+            dailyTrackingBreakdown
+                .padding(.horizontal)
         }
         .simultaneousGesture(
             DragGesture(minimumDistance: 60)
@@ -211,7 +214,7 @@ struct MonthCalendarView: View {
         if let firstItem = itemsWithData.first {
             let value = schedule.trackingValue(for: firstItem.id)
             let hours = value.actual > 0 ? value.actualHours : value.plannedHours
-            Text(String(format: "%.0fh", hours))
+            Text(formatHoursMinutes(hours))
                 .font(.system(size: 8))
                 .foregroundColor(firstItem.color)
         }
@@ -238,6 +241,78 @@ struct MonthCalendarView: View {
                         .frame(width: max(width * barWidth, 1), height: 6)
                         .offset(x: start * barWidth)
                 }
+            }
+        }
+    }
+
+    // MARK: - Daily Tracking Breakdown
+
+    private var dailyTrackingBreakdown: some View {
+        let datesWithData: [(Date, DaySchedule)] = viewModel.monthDates.compactMap { date in
+            guard let date = date else { return nil }
+            let schedule = viewModel.schedule(for: date)
+            guard schedule.hasAnyTrackingData else { return nil }
+            return (date, schedule)
+        }
+
+        return Group {
+            if !datesWithData.isEmpty && !viewModel.trackingItems.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("日別記録")
+                            .font(.subheadline.bold())
+                        Spacer()
+                    }
+
+                    ForEach(datesWithData, id: \.0) { date, schedule in
+                        Button {
+                            trackingEntryDate = date
+                            showingTrackingEntry = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text(schedule.dateString)
+                                    .font(.caption.bold())
+                                    .foregroundColor(.primary)
+                                    .frame(width: 64, alignment: .leading)
+
+                                ForEach(viewModel.trackingItems) { item in
+                                    let value = schedule.trackingValue(for: item.id)
+                                    if value.hasData {
+                                        HStack(spacing: 2) {
+                                            Circle()
+                                                .fill(item.color)
+                                                .frame(width: 6, height: 6)
+                                            VStack(alignment: .leading, spacing: 0) {
+                                                if value.planned > 0 {
+                                                    Text("予 \(formatHoursMinutes(value.plannedHours))")
+                                                        .font(.system(size: 9))
+                                                        .foregroundColor(.orange)
+                                                }
+                                                if value.actual > 0 {
+                                                    Text("実 \(formatHoursMinutes(value.actualHours))")
+                                                        .font(.system(size: 9))
+                                                        .foregroundColor(item.color)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.blue)
+                            }
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.bottom, 16)
             }
         }
     }
