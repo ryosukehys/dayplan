@@ -35,6 +35,9 @@ struct DayDetailView: View {
                 TodoSectionView(date: date, viewModel: viewModel)
                     .padding(.horizontal)
 
+                dailyCategoryBreakdown
+                    .padding(.horizontal)
+
                 Spacer(minLength: 80)
             }
         }
@@ -381,6 +384,70 @@ struct DayDetailView: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal)
+        }
+    }
+
+    // MARK: - Daily Category Breakdown
+
+    private var dailyCategoryBreakdown: some View {
+        let stats = viewModel.dailyStats(for: date)
+        let totalMinutes = stats.reduce(0) { $0 + $1.totalMinutes }
+
+        return Group {
+            if !stats.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("カテゴリ内訳", systemImage: "chart.pie")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.primary)
+
+                    // Stacked bar
+                    GeometryReader { geometry in
+                        HStack(spacing: 0) {
+                            ForEach(stats) { stat in
+                                let fraction = totalMinutes > 0 ? CGFloat(stat.totalMinutes) / CGFloat(totalMinutes) : 0
+                                Rectangle()
+                                    .fill(stat.category.color)
+                                    .frame(width: max(fraction * geometry.size.width, 2))
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    .frame(height: 14)
+
+                    // Category list
+                    FlowLayoutView(stats: stats, totalMinutes: totalMinutes)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+        }
+    }
+}
+
+private struct FlowLayoutView: View {
+    let stats: [ScheduleViewModel.CategoryStat]
+    let totalMinutes: Int
+
+    var body: some View {
+        let items = stats.map { stat -> (ScheduleViewModel.CategoryStat, String) in
+            let pct = totalMinutes > 0 ? String(format: "%.0f%%", Double(stat.totalMinutes) / Double(totalMinutes) * 100) : "0%"
+            return (stat, pct)
+        }
+
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 4)], alignment: .leading, spacing: 4) {
+            ForEach(items, id: \.0.id) { stat, pct in
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(stat.category.color)
+                        .frame(width: 8, height: 8)
+                    Text(stat.category.name)
+                        .font(.system(size: 11))
+                    Text(pct)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+            }
         }
     }
 }

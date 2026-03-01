@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var viewModel = ScheduleViewModel()
     @State private var selectedTab = 0
+    @State private var statsTab: StatisticsView.StatsTab = .statistics
 
     private var tabSelection: Binding<Int> {
         Binding(
@@ -10,6 +11,12 @@ struct ContentView: View {
             set: { newValue in
                 if newValue == selectedTab && newValue == 0 {
                     viewModel.goToToday()
+                }
+                if newValue == selectedTab && newValue == 2 {
+                    // 統計タブを2度押しでリマインダー/統計を切り替え
+                    withAnimation {
+                        statsTab = statsTab == .statistics ? .reminders : .statistics
+                    }
                 }
                 selectedTab = newValue
             }
@@ -35,10 +42,11 @@ struct ContentView: View {
             .tag(1)
 
             NavigationStack {
-                StatisticsView(viewModel: viewModel)
+                StatisticsView(viewModel: viewModel, selectedTab: $statsTab)
             }
             .tabItem {
-                Label("統計", systemImage: "chart.bar")
+                Label(statsTab == .statistics ? "統計" : "リマインダー",
+                      systemImage: statsTab == .statistics ? "chart.bar" : "checklist")
             }
             .tag(2)
 

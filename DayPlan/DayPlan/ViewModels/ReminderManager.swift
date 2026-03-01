@@ -24,14 +24,27 @@ class ReminderManager {
     }
 
     func requestAccess() {
+        if authorizationStatus == .denied {
+            // 一度拒否された場合は設定アプリへ誘導
+            openSettings()
+            return
+        }
         eventStore.requestFullAccessToReminders { granted, error in
             DispatchQueue.main.async {
                 self.authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
                 if granted {
                     self.fetchLists()
                     self.fetchReminders()
+                } else if self.authorizationStatus == .denied {
+                    self.openSettings()
                 }
             }
+        }
+    }
+
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
         }
     }
 
