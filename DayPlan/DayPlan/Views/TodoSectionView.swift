@@ -13,14 +13,27 @@ struct TodoSectionView: View {
                 .foregroundColor(.primary)
 
             ForEach(0..<3, id: \.self) { index in
+                let text = schedule.todos.indices.contains(index) ? schedule.todos[index] : ""
+                let isCompleted = schedule.todoCompleted.indices.contains(index) ? schedule.todoCompleted[index] : false
+
                 HStack(spacing: 8) {
-                    Circle()
-                        .fill(todoColor(index: index, text: schedule.todos.indices.contains(index) ? schedule.todos[index] : ""))
-                        .frame(width: 8, height: 8)
+                    Button {
+                        if !text.isEmpty {
+                            viewModel.toggleTodoCompleted(for: date, index: index)
+                        }
+                    } label: {
+                        Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                            .font(.title3)
+                            .foregroundColor(isCompleted ? .green : (text.isEmpty ? Color(.systemGray4) : todoColor(index: index)))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(text.isEmpty)
 
                     TextField("やること \(index + 1)", text: todoBinding(for: date, index: index))
                         .font(.subheadline)
                         .textFieldStyle(.roundedBorder)
+                        .strikethrough(isCompleted && !text.isEmpty)
+                        .foregroundColor(isCompleted ? .secondary : .primary)
                 }
             }
         }
@@ -41,10 +54,7 @@ struct TodoSectionView: View {
         )
     }
 
-    private func todoColor(index: Int, text: String) -> Color {
-        if text.isEmpty {
-            return .gray.opacity(0.3)
-        }
+    private func todoColor(index: Int) -> Color {
         let colors: [Color] = [.blue, .orange, .green]
         return colors[index % colors.count]
     }

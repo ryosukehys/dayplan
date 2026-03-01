@@ -206,7 +206,8 @@ struct DayDetailView: View {
                     prefillEndHour = endMin / 60
                     prefillEndMinute = endMin % 60
                     showingAddBlock = true
-                }
+                },
+                showCurrentTime: Calendar.current.isDateInToday(date)
             )
             .padding(.horizontal)
         }

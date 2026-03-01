@@ -209,7 +209,7 @@ struct WeekView: View {
             .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 2) {
-                TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true)
+                TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true, showCurrentTime: isToday)
 
                 HStack {
                     if schedule.overtimeHours(categories: viewModel.categories) > 0 {

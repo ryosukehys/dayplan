@@ -210,6 +210,7 @@ class ScheduleViewModel {
             )
         }
         newSchedule.todos = copied.todos
+        newSchedule.todoCompleted = copied.todoCompleted
         updateSchedule(newSchedule)
     }
 
@@ -227,6 +228,15 @@ class ScheduleViewModel {
             daySchedule.todos.append("")
         }
         daySchedule.todos[index] = text
+        updateSchedule(daySchedule)
+    }
+
+    func toggleTodoCompleted(for date: Date, index: Int) {
+        var daySchedule = schedule(for: date)
+        while daySchedule.todoCompleted.count <= index {
+            daySchedule.todoCompleted.append(false)
+        }
+        daySchedule.todoCompleted[index].toggle()
         updateSchedule(daySchedule)
     }
 
