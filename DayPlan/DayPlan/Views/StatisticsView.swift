@@ -422,7 +422,7 @@ struct StatisticsView: View {
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Text(String(format: "%.1fh", hours))
+            Text(formatHoursMinutes(hours))
                 .font(.title3.bold())
                 .foregroundColor(color)
         }
@@ -440,7 +440,7 @@ struct StatisticsView: View {
                 Text("カテゴリ別時間配分")
                     .font(.subheadline.bold())
                 Spacer()
-                Text(String(format: "合計 %.1f時間", totalHours))
+                Text("合計 \(formatHoursMinutesJP(totalHours))")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -521,7 +521,7 @@ struct StatisticsView: View {
                         }
                         .frame(width: 80, height: 16)
 
-                        Text(String(format: "%.1fh", stat.totalHours))
+                        Text(formatHoursMinutes(stat.totalHours))
                             .font(.subheadline.bold())
                             .frame(width: 50, alignment: .trailing)
 

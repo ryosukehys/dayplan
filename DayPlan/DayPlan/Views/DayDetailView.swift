@@ -239,7 +239,7 @@ struct DayDetailView: View {
             Button {
                 showingOvertimeEntry = true
             } label: {
-                statCard(title: "残業予定", value: String(format: "%.1fh", schedule.plannedOvertimeHours), icon: "clock", color: .orange)
+                statCard(title: "残業予定", value: formatHoursMinutes(schedule.plannedOvertimeHours), icon: "clock", color: .orange)
             }
             .buttonStyle(.plain)
 
@@ -247,11 +247,11 @@ struct DayDetailView: View {
             Button {
                 showingOvertimeEntry = true
             } label: {
-                statCard(title: "残業実績", value: String(format: "%.1fh", schedule.actualOvertimeHours), icon: "clock.badge.exclamationmark", color: .red)
+                statCard(title: "残業実績", value: formatHoursMinutes(schedule.actualOvertimeHours), icon: "clock.badge.exclamationmark", color: .red)
             }
             .buttonStyle(.plain)
 
-            statCard(title: "空き時間", value: String(format: "%.1fh", schedule.freeTimeHours), icon: "clock", color: .green)
+            statCard(title: "空き時間", value: formatHoursMinutes(schedule.freeTimeHours), icon: "clock", color: .green)
             statCard(title: "予定数", value: "\(schedule.timeBlocks.count)件", icon: "calendar", color: .blue)
         }
         .padding(.horizontal)
@@ -321,7 +321,7 @@ struct DayDetailView: View {
 
                         Spacer()
 
-                        Text(String(format: "%.1fh", block.durationHours))
+                        Text(formatHoursMinutes(block.durationHours))
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 8)
