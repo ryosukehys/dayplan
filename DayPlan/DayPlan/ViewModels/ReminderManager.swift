@@ -10,7 +10,8 @@ class ReminderManager {
     var isLoading = false
     private var isInitialized = false
 
-    private lazy var eventStore = EKEventStore()
+    @ObservationIgnored
+    private let eventStore = EKEventStore()
 
     func checkAuthorization() {
         authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
@@ -93,7 +94,7 @@ class ReminderManager {
     }
 
     var hasAccess: Bool {
-        authorizationStatus == .fullAccess || authorizationStatus == .authorized
+        authorizationStatus == .fullAccess
     }
 
     var incompleteCount: Int {
