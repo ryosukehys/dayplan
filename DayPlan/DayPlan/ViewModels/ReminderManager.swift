@@ -8,32 +8,43 @@ class ReminderManager {
     var selectedListID: String?
     var authorizationStatus: EKAuthorizationStatus = .notDetermined
     var isLoading = false
-    private var isInitialized = false
+    var errorMessage: String?
 
     @ObservationIgnored
-    private let eventStore = EKEventStore()
+    private var _eventStore: EKEventStore?
+
+    private var eventStore: EKEventStore {
+        if _eventStore == nil {
+            _eventStore = EKEventStore()
+        }
+        return _eventStore!
+    }
 
     func checkAuthorization() {
         authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
-        if hasAccess && !isInitialized {
-            isInitialized = true
+        if hasAccess {
             fetchLists()
             fetchReminders()
         }
     }
 
     func requestAccess() {
-        if authorizationStatus == .denied {
-            // 一度拒否された場合は設定アプリへ誘導
+        if authorizationStatus == .denied || authorizationStatus == .restricted {
             openSettings()
             return
         }
-        eventStore.requestFullAccessToReminders { granted, error in
+        isLoading = true
+        errorMessage = nil
+        eventStore.requestFullAccessToReminders { [weak self] granted, error in
             DispatchQueue.main.async {
+                guard let self else { return }
+                self.isLoading = false
                 self.authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
                 if granted {
                     self.fetchLists()
                     self.fetchReminders()
+                } else if let error {
+                    self.errorMessage = error.localizedDescription
                 } else if self.authorizationStatus == .denied {
                     self.openSettings()
                 }
@@ -62,8 +73,9 @@ class ReminderManager {
         }
 
         let predicate = eventStore.predicateForReminders(in: calendars)
-        eventStore.fetchReminders(matching: predicate) { fetched in
+        eventStore.fetchReminders(matching: predicate) { [weak self] fetched in
             DispatchQueue.main.async {
+                guard let self else { return }
                 self.reminders = (fetched ?? []).sorted {
                     if $0.isCompleted != $1.isCompleted {
                         return !$0.isCompleted
