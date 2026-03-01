@@ -24,10 +24,20 @@ struct TimeBarView: View {
                             let tappedMinute = Int((location.x / barWidth) * 1440)
                             let gaps = schedule.gapSlots()
                             if let gap = gaps.first(where: { tappedMinute >= $0.startMinute && tappedMinute < $0.endMinute }) {
-                                let snapped = (tappedMinute / 15) * 15
-                                let start = max(gap.startMinute, snapped)
-                                let end = min(gap.endMinute, start + 60)
-                                onTapGap(start, end)
+                                let sorted = schedule.sortedBlocks
+                                let hasPrev = sorted.contains { $0.endTotalMinutes == gap.startMinute }
+                                let hasNext = sorted.contains { $0.startTotalMinutes == gap.endMinute }
+
+                                if hasPrev || hasNext {
+                                    // Between events: fill the entire gap
+                                    onTapGap(gap.startMinute, gap.endMinute)
+                                } else {
+                                    // Open area: 1-hour block from tap point
+                                    let snapped = (tappedMinute / 15) * 15
+                                    let start = max(gap.startMinute, snapped)
+                                    let end = min(gap.endMinute, start + 60)
+                                    onTapGap(start, end)
+                                }
                             }
                         }
 
