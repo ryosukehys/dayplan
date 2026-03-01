@@ -209,6 +209,13 @@ struct WeekView: View {
             .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 2) {
+                if !schedule.dayEvent.isEmpty {
+                    Text(schedule.dayEvent)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.orange)
+                        .lineLimit(1)
+                }
+
                 TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true, showCurrentTime: isToday)
 
                 HStack {
