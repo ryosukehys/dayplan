@@ -435,7 +435,7 @@ private struct FlowLayoutView: View {
             return (stat, pct)
         }
 
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 4)], alignment: .leading, spacing: 4) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 4)], alignment: .leading, spacing: 4) {
             ForEach(items, id: \.0.id) { stat, pct in
                 HStack(spacing: 4) {
                     Circle()
@@ -443,8 +443,10 @@ private struct FlowLayoutView: View {
                         .frame(width: 8, height: 8)
                     Text(stat.category.name)
                         .font(.system(size: 11))
-                    Text(pct)
+                    Text(formatHoursMinutes(stat.totalHours))
                         .font(.system(size: 11, weight: .bold))
+                    Text(pct)
+                        .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
             }
