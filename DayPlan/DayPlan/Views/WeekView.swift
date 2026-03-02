@@ -219,11 +219,12 @@ struct WeekView: View {
                         .font(.system(size: 9))
                         .foregroundColor(.green)
 
-                    let todoCount = schedule.todos.filter { !$0.isEmpty }.count
-                    if todoCount > 0 {
-                        Text("Todo \(todoCount)/3")
+                    let todoTotal = schedule.todos.filter { !$0.isEmpty }.count
+                    if todoTotal > 0 {
+                        let todoDone = zip(schedule.todos, schedule.todoCompleted).filter { !$0.0.isEmpty && $0.1 }.count
+                        Text("Todo \(todoDone)/\(todoTotal)")
                             .font(.system(size: 9))
-                            .foregroundColor(.blue)
+                            .foregroundColor(todoDone == todoTotal ? .green : .blue)
                     }
                 }
             }
