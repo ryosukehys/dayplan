@@ -425,7 +425,7 @@ struct TrackingEntryView: View {
                         .pickerStyle(.menu)
 
                         Picker("分", selection: plannedMinutesBinding(for: item.id)) {
-                            ForEach([0, 15, 30, 45], id: \.self) { m in
+                            ForEach([0, 10, 20, 30, 40, 50], id: \.self) { m in
                                 Text(String(format: "%02d分", m)).tag(m)
                             }
                         }
@@ -443,7 +443,7 @@ struct TrackingEntryView: View {
                         .pickerStyle(.menu)
 
                         Picker("分", selection: actualMinutesBinding(for: item.id)) {
-                            ForEach([0, 15, 30, 45], id: \.self) { m in
+                            ForEach([0, 10, 20, 30, 40, 50], id: \.self) { m in
                                 Text(String(format: "%02d分", m)).tag(m)
                             }
                         }
