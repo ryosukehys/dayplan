@@ -9,13 +9,24 @@ struct ContentView: View {
         Binding(
             get: { selectedTab },
             set: { newValue in
-                if newValue == selectedTab && newValue == 0 {
-                    viewModel.goToToday()
-                }
-                if newValue == selectedTab && newValue == 2 {
-                    // 統計タブを2度押しでリマインダー/統計を切り替え
-                    withAnimation {
-                        statsTab = statsTab == .statistics ? .reminders : .statistics
+                if newValue == selectedTab {
+                    switch newValue {
+                    case 0:
+                        // 週間タブ2度押しで今週に遷移
+                        viewModel.goToToday()
+                    case 1:
+                        // カレンダータブ2度押しで今月に遷移
+                        viewModel.goToToday()
+                    case 2:
+                        // 統計タブを2度押しでリマインダー/統計を切り替え
+                        withAnimation {
+                            statsTab = statsTab == .statistics ? .reminders : .statistics
+                        }
+                    case 3:
+                        // 練習記録タブ2度押しで今週に遷移
+                        viewModel.goToToday()
+                    default:
+                        break
                     }
                 }
                 selectedTab = newValue
