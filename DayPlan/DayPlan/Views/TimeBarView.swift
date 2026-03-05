@@ -10,7 +10,31 @@ struct CalendarEventBar: View {
 
     var body: some View {
         let timedEvents = events.filter { !$0.isAllDay }
-        if !timedEvents.isEmpty {
+        let allDayEvents = events.filter { $0.isAllDay }
+
+        VStack(alignment: .leading, spacing: compact ? 1 : 2) {
+            // All-day events
+            if !allDayEvents.isEmpty && !compact {
+                HStack(spacing: 4) {
+                    ForEach(allDayEvents, id: \.eventIdentifier) { event in
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(Color(cgColor: event.calendar.cgColor))
+                                .frame(width: 6, height: 6)
+                            Text(event.title ?? "")
+                                .font(.system(size: 9))
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(cgColor: event.calendar.cgColor).opacity(0.15))
+                        .cornerRadius(4)
+                    }
+                    Spacer()
+                }
+            }
+
+            // Timed events bar
             GeometryReader { geometry in
                 let barWidth = geometry.size.width
                 let barHeight: CGFloat = compact ? 16 : 24
@@ -60,6 +84,7 @@ struct TimeBarView: View {
     var calendarDate: Date = Date()
     var onTapGap: ((Int, Int) -> Void)?
     var showCurrentTime: Bool = false
+    var showCalendarLane: Bool = false
 
     private let totalMinutes: CGFloat = 1440 // 24 hours
     private let hourLabels = [0, 3, 6, 9, 12, 15, 18, 21, 24]
@@ -67,7 +92,7 @@ struct TimeBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 2 : 4) {
             // Calendar events bar (separate lane, above time blocks)
-            if !calendarEvents.isEmpty {
+            if showCalendarLane {
                 if !compact {
                     Text("カレンダー")
                         .font(.system(size: 9))
@@ -76,7 +101,7 @@ struct TimeBarView: View {
                 CalendarEventBar(events: calendarEvents, date: calendarDate, compact: compact)
             }
 
-            if !compact && !calendarEvents.isEmpty {
+            if !compact && showCalendarLane {
                 Text("タイムブロック")
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)

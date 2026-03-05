@@ -214,7 +214,8 @@ struct WeekView: View {
                     compact: true,
                     calendarEvents: calendarManager.isEnabled ? calendarManager.fetchEvents(for: date) : [],
                     calendarDate: date,
-                    showCurrentTime: isToday
+                    showCurrentTime: isToday,
+                    showCalendarLane: calendarManager.isEnabled && calendarManager.hasAccess
                 )
 
                 HStack {

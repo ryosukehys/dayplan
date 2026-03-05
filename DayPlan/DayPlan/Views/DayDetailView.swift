@@ -231,7 +231,8 @@ struct DayDetailView: View {
                     prefillEndMinute = endMin % 60
                     showingAddBlock = true
                 },
-                showCurrentTime: Calendar.current.isDateInToday(date)
+                showCurrentTime: Calendar.current.isDateInToday(date),
+                showCalendarLane: calendarManager.isEnabled && calendarManager.hasAccess
             )
             .padding(.horizontal)
         }
@@ -343,8 +344,8 @@ struct DayDetailView: View {
 
     @ViewBuilder
     private var calendarEventsSection: some View {
-        let events = calendarEvents
-        if !events.isEmpty {
+        if calendarManager.isEnabled && calendarManager.hasAccess {
+            let events = calendarEvents
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Image(systemName: "calendar")
@@ -354,38 +355,60 @@ struct DayDetailView: View {
                         .font(.caption.bold())
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("\(events.count)件")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                    if !events.isEmpty {
+                        Text("\(events.count)件")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.horizontal)
 
-                ForEach(events, id: \.eventIdentifier) { event in
-                    HStack(spacing: 10) {
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color(cgColor: event.calendar.cgColor))
-                            .frame(width: 4, height: 36)
+                if events.isEmpty {
+                    Text("カレンダーの予定はありません")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                } else {
+                    ForEach(events, id: \.eventIdentifier) { event in
+                        HStack(spacing: 10) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color(cgColor: event.calendar.cgColor))
+                                .frame(width: 4, height: 36)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(event.title ?? "（タイトルなし）")
-                                .font(.subheadline)
-                                .lineLimit(1)
-                            Text(CalendarManager.eventTimeString(event))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 4) {
+                                    if event.isAllDay {
+                                        Text("終日")
+                                            .font(.system(size: 9, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(Color(cgColor: event.calendar.cgColor).opacity(0.7))
+                                            .cornerRadius(3)
+                                    }
+                                    Text(event.title ?? "（タイトルなし）")
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                }
+                                if !event.isAllDay {
+                                    Text(CalendarManager.eventTimeString(event))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if let location = event.location, !location.isEmpty {
+                                Text(location)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
-
-                        Spacer()
-
-                        if let location = event.location, !location.isEmpty {
-                            Text(location)
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 4)
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 4)
                 }
             }
         }
