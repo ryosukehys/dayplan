@@ -453,6 +453,12 @@ class ScheduleViewModel {
         updateSchedule(daySchedule)
     }
 
+    func updateDiaryNote(for date: Date, note: String) {
+        var daySchedule = schedule(for: date)
+        daySchedule.diaryNote = note
+        updateSchedule(daySchedule)
+    }
+
     // MARK: - Quotes
 
     var randomQuote: Quote? {

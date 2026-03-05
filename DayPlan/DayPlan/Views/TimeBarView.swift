@@ -1,9 +1,63 @@
 import SwiftUI
+import EventKit
+
+struct CalendarEventBar: View {
+    let events: [EKEvent]
+    let date: Date
+    let compact: Bool
+
+    private let totalMinutes: CGFloat = 1440
+
+    var body: some View {
+        let timedEvents = events.filter { !$0.isAllDay }
+        if !timedEvents.isEmpty {
+            GeometryReader { geometry in
+                let barWidth = geometry.size.width
+                let barHeight: CGFloat = compact ? 16 : 24
+
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(.systemGray5).opacity(0.5))
+                        .frame(height: barHeight)
+
+                    ForEach(timedEvents, id: \.eventIdentifier) { event in
+                        let mins = CalendarManager.eventMinutes(event, on: date)
+                        let startFraction = CGFloat(mins.start) / totalMinutes
+                        let duration = max(CGFloat(mins.end - mins.start), 1)
+                        let widthFraction = duration / totalMinutes
+                        let color = Color(cgColor: event.calendar.cgColor)
+
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(color.opacity(0.7))
+                            .frame(
+                                width: max(widthFraction * barWidth, 2),
+                                height: barHeight
+                            )
+                            .offset(x: startFraction * barWidth)
+
+                        if !compact && widthFraction * barWidth > 40 {
+                            Text(event.title ?? "")
+                                .font(.system(size: 8))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .frame(width: max(widthFraction * barWidth - 4, 0), alignment: .center)
+                                .offset(x: startFraction * barWidth + 2)
+                        }
+                    }
+                }
+                .frame(height: barHeight)
+            }
+            .frame(height: compact ? 16 : 24)
+        }
+    }
+}
 
 struct TimeBarView: View {
     let schedule: DaySchedule
     let categories: [ScheduleCategory]
     let compact: Bool
+    var calendarEvents: [EKEvent] = []
+    var calendarDate: Date = Date()
     var onTapGap: ((Int, Int) -> Void)?
     var showCurrentTime: Bool = false
 
@@ -93,6 +147,11 @@ struct TimeBarView: View {
                 .frame(height: compact ? 24 : 36)
             }
             .frame(height: compact ? 24 : 36)
+
+            // Calendar events bar (separate lane)
+            if !calendarEvents.isEmpty {
+                CalendarEventBar(events: calendarEvents, date: calendarDate, compact: compact)
+            }
 
             // Hour labels
             if !compact {

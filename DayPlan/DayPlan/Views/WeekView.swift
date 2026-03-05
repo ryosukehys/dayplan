@@ -1,7 +1,9 @@
 import SwiftUI
+import EventKit
 
 struct WeekView: View {
     @Bindable var viewModel: ScheduleViewModel
+    var calendarManager: CalendarManager
 
     @State private var showingPasteTargets = false
     @State private var pasteTargetDates: Set<Date> = []
@@ -15,7 +17,7 @@ struct WeekView: View {
                 weekSummaryCard
 
                 ForEach(viewModel.weekDates, id: \.self) { date in
-                    NavigationLink(destination: DayDetailView(viewModel: viewModel, date: date)) {
+                    NavigationLink(destination: DayDetailView(viewModel: viewModel, calendarManager: calendarManager, date: date)) {
                         dayRow(for: date)
                     }
                     .buttonStyle(.plain)
@@ -206,7 +208,14 @@ struct WeekView: View {
                     currentActivityLabel(for: schedule)
                 }
 
-                TimeBarView(schedule: schedule, categories: viewModel.categories, compact: true, showCurrentTime: isToday)
+                TimeBarView(
+                    schedule: schedule,
+                    categories: viewModel.categories,
+                    compact: true,
+                    calendarEvents: calendarManager.isEnabled ? calendarManager.fetchEvents(for: date) : [],
+                    calendarDate: date,
+                    showCurrentTime: isToday
+                )
 
                 HStack {
                     if schedule.overtimeHours(categories: viewModel.categories) > 0 {

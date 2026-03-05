@@ -1,7 +1,9 @@
 import SwiftUI
+import EventKit
 
 struct DayDetailView: View {
     @Bindable var viewModel: ScheduleViewModel
+    var calendarManager: CalendarManager
     @State var date: Date
 
     @State private var showingAddBlock = false
@@ -18,8 +20,13 @@ struct DayDetailView: View {
         viewModel.schedule(for: date)
     }
 
-    init(viewModel: ScheduleViewModel, date: Date) {
+    var calendarEvents: [EKEvent] {
+        calendarManager.fetchEvents(for: date)
+    }
+
+    init(viewModel: ScheduleViewModel, calendarManager: CalendarManager, date: Date) {
         self.viewModel = viewModel
+        self.calendarManager = calendarManager
         self._date = State(initialValue: date)
     }
 
@@ -30,11 +37,14 @@ struct DayDetailView: View {
                 dayEventSection
                 currentActivityCard
                 timeBarSection
+                calendarEventsSection
                 statsRow
                 timeBlocksList
 
                 TodoSectionView(date: date, viewModel: viewModel)
                     .padding(.horizontal)
+
+                diarySection
 
                 dailyCategoryBreakdown
                     .padding(.horizontal)
@@ -68,6 +78,14 @@ struct DayDetailView: View {
                         showingTrackingEntry = true
                     } label: {
                         Label("記録を入力", systemImage: "chart.bar.doc.horizontal")
+                    }
+
+                    if !schedule.timeBlocks.isEmpty && calendarManager.hasAccess {
+                        Button {
+                            exportAllBlocksToCalendar()
+                        } label: {
+                            Label("カレンダーに書き出し", systemImage: "square.and.arrow.up")
+                        }
                     }
 
                     if schedule.isWeekday && schedule.timeBlocks.isEmpty {
@@ -204,6 +222,8 @@ struct DayDetailView: View {
                 schedule: schedule,
                 categories: viewModel.categories,
                 compact: false,
+                calendarEvents: calendarEvents,
+                calendarDate: date,
                 onTapGap: { startMin, endMin in
                     prefillStartHour = startMin / 60
                     prefillStartMinute = startMin % 60
@@ -318,6 +338,56 @@ struct DayDetailView: View {
             )
             .cornerRadius(12)
             .padding(.horizontal)
+        }
+    }
+
+    @ViewBuilder
+    private var calendarEventsSection: some View {
+        let events = calendarEvents
+        if !events.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Image(systemName: "calendar")
+                        .font(.caption)
+                        .foregroundColor(.purple)
+                    Text("カレンダー")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text("\(events.count)件")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal)
+
+                ForEach(events, id: \.eventIdentifier) { event in
+                    HStack(spacing: 10) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(cgColor: event.calendar.cgColor))
+                            .frame(width: 4, height: 36)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(event.title ?? "（タイトルなし）")
+                                .font(.subheadline)
+                                .lineLimit(1)
+                            Text(CalendarManager.eventTimeString(event))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        if let location = event.location, !location.isEmpty {
+                            Text(location)
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                }
+            }
         }
     }
 
@@ -474,6 +544,63 @@ struct DayDetailView: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal)
+        }
+    }
+
+    // MARK: - Diary Section
+
+    private var diarySection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: "note.text")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                Text("ふりかえり")
+                    .font(.caption.bold())
+                    .foregroundColor(.secondary)
+                Spacer()
+                if !schedule.diaryNote.isEmpty {
+                    Text("\(schedule.diaryNote.count)文字")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            TextEditor(text: diaryNoteBinding)
+                .font(.subheadline)
+                .frame(minHeight: 80, maxHeight: 200)
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .background(Color(.systemGray6))
+                .cornerRadius(10)
+                .overlay(
+                    Group {
+                        if schedule.diaryNote.isEmpty {
+                            Text("できたこと、できなかったこと、気づきなど...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary.opacity(0.5))
+                                .padding(12)
+                        }
+                    },
+                    alignment: .topLeading
+                )
+        }
+        .padding(.horizontal)
+    }
+
+    private var diaryNoteBinding: Binding<String> {
+        Binding(
+            get: { viewModel.schedule(for: date).diaryNote },
+            set: { viewModel.updateDiaryNote(for: date, note: $0) }
+        )
+    }
+
+    // MARK: - Calendar Export
+
+    private func exportAllBlocksToCalendar() {
+        for block in schedule.timeBlocks {
+            let categoryName = viewModel.category(for: block.categoryID)?.name ?? "予定"
+            _ = calendarManager.exportTimeBlock(block, date: date, categoryName: categoryName)
         }
     }
 

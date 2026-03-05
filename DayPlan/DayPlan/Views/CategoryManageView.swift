@@ -1,7 +1,9 @@
 import SwiftUI
+import EventKit
 
 struct CategoryManageView: View {
     @Bindable var viewModel: ScheduleViewModel
+    var calendarManager: CalendarManager
     @State private var showingAddCategorySheet = false
     @State private var showingAddQuoteSheet = false
     @State private var showingAddTrackingItemSheet = false
@@ -24,6 +26,82 @@ struct CategoryManageView: View {
 
     var body: some View {
         List {
+            // Calendar integration section
+            Section {
+                if calendarManager.hasAccess {
+                    Toggle("カレンダー連携", isOn: Binding(
+                        get: { calendarManager.isEnabled },
+                        set: { calendarManager.setEnabled($0) }
+                    ))
+
+                    if calendarManager.isEnabled {
+                        // Calendar selection
+                        DisclosureGroup("表示するカレンダー") {
+                            ForEach(calendarManager.availableCalendars, id: \.calendarIdentifier) { cal in
+                                Button {
+                                    calendarManager.toggleCalendar(cal.calendarIdentifier)
+                                } label: {
+                                    HStack {
+                                        Circle()
+                                            .fill(Color(cgColor: cal.cgColor))
+                                            .frame(width: 12, height: 12)
+                                        Text(cal.title)
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                        if calendarManager.selectedCalendarIDs.contains(cal.calendarIdentifier) {
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Export calendar selection
+                        DisclosureGroup("書き出し先カレンダー") {
+                            ForEach(calendarManager.availableCalendars.filter { $0.allowsContentModifications }, id: \.calendarIdentifier) { cal in
+                                Button {
+                                    calendarManager.setExportCalendar(cal.calendarIdentifier)
+                                } label: {
+                                    HStack {
+                                        Circle()
+                                            .fill(Color(cgColor: cal.cgColor))
+                                            .frame(width: 12, height: 12)
+                                        Text(cal.title)
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                        if calendarManager.exportCalendarID == cal.calendarIdentifier {
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Button {
+                        calendarManager.requestAccess()
+                    } label: {
+                        HStack {
+                            Image(systemName: "calendar.badge.plus")
+                                .foregroundColor(.purple)
+                            Text("カレンダーへのアクセスを許可")
+                        }
+                    }
+
+                    if let error = calendarManager.errorMessage {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+            } header: {
+                Label("カレンダー連携", systemImage: "calendar")
+            } footer: {
+                Text("iOSカレンダーの予定をタイムラインに表示したり、タイムブロックをカレンダーに書き出すことができます。")
+            }
+
             // Tracking items section
             Section("記録項目（長押しで並び替え）") {
                 ForEach(viewModel.trackingItems) { item in
