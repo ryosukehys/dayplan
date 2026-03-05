@@ -66,6 +66,22 @@ struct TimeBarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 2 : 4) {
+            // Calendar events bar (separate lane, above time blocks)
+            if !calendarEvents.isEmpty {
+                if !compact {
+                    Text("カレンダー")
+                        .font(.system(size: 9))
+                        .foregroundColor(.purple)
+                }
+                CalendarEventBar(events: calendarEvents, date: calendarDate, compact: compact)
+            }
+
+            if !compact && !calendarEvents.isEmpty {
+                Text("タイムブロック")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+            }
+
             GeometryReader { geometry in
                 let barWidth = geometry.size.width
 
@@ -147,11 +163,6 @@ struct TimeBarView: View {
                 .frame(height: compact ? 24 : 36)
             }
             .frame(height: compact ? 24 : 36)
-
-            // Calendar events bar (separate lane)
-            if !calendarEvents.isEmpty {
-                CalendarEventBar(events: calendarEvents, date: calendarDate, compact: compact)
-            }
 
             // Hour labels
             if !compact {

@@ -36,8 +36,8 @@ struct DayDetailView: View {
                 dateHeader
                 dayEventSection
                 currentActivityCard
-                timeBarSection
                 calendarEventsSection
+                timeBarSection
                 statsRow
                 timeBlocksList
 
