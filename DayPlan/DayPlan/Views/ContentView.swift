@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = ScheduleViewModel()
+    @State private var calendarManager = CalendarManager()
     @State private var selectedTab = 0
     @State private var statsTab: StatisticsView.StatsTab = .statistics
 
@@ -37,7 +38,7 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: tabSelection) {
             NavigationStack {
-                WeekView(viewModel: viewModel)
+                WeekView(viewModel: viewModel, calendarManager: calendarManager)
             }
             .tabItem {
                 Label("週間", systemImage: "calendar.day.timeline.left")
@@ -45,7 +46,7 @@ struct ContentView: View {
             .tag(0)
 
             NavigationStack {
-                MonthCalendarView(viewModel: viewModel)
+                MonthCalendarView(viewModel: viewModel, calendarManager: calendarManager)
             }
             .tabItem {
                 Label("カレンダー", systemImage: "calendar")
@@ -70,12 +71,15 @@ struct ContentView: View {
             .tag(3)
 
             NavigationStack {
-                CategoryManageView(viewModel: viewModel)
+                CategoryManageView(viewModel: viewModel, calendarManager: calendarManager)
             }
             .tabItem {
                 Label("設定", systemImage: "gearshape")
             }
             .tag(4)
+        }
+        .onAppear {
+            calendarManager.checkAuthorization()
         }
     }
 }

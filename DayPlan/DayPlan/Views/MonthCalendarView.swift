@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MonthCalendarView: View {
     @Bindable var viewModel: ScheduleViewModel
+    var calendarManager: CalendarManager = CalendarManager()
 
     @State private var selectedDay: Date?
     @State private var showingTrackingEntry = false
@@ -20,7 +21,7 @@ struct MonthCalendarView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedDay) { date in
             NavigationStack {
-                DayDetailView(viewModel: viewModel, date: date)
+                DayDetailView(viewModel: viewModel, calendarManager: calendarManager, date: date)
             }
         }
         .sheet(isPresented: $showingTrackingEntry) {
