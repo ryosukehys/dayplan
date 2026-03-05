@@ -8,6 +8,7 @@ struct DaySchedule: Identifiable, Codable {
     var todoCompleted: [Bool]
     var trackingValues: [String: TrackingValue]
     var dayEvent: String
+    var diaryNote: String
 
     init(
         id: UUID = UUID(),
@@ -16,7 +17,8 @@ struct DaySchedule: Identifiable, Codable {
         todos: [String] = ["", "", ""],
         todoCompleted: [Bool] = [false, false, false],
         trackingValues: [String: TrackingValue] = [:],
-        dayEvent: String = ""
+        dayEvent: String = "",
+        diaryNote: String = ""
     ) {
         self.id = id
         self.date = date
@@ -25,12 +27,13 @@ struct DaySchedule: Identifiable, Codable {
         self.todoCompleted = todoCompleted
         self.trackingValues = trackingValues
         self.dayEvent = dayEvent
+        self.diaryNote = diaryNote
     }
 
     enum CodingKeys: String, CodingKey {
         case id, date, timeBlocks, todos, todoCompleted
         case plannedOvertimeMinutes, actualOvertimeMinutes
-        case trackingValues, dayEvent
+        case trackingValues, dayEvent, diaryNote
     }
 
     init(from decoder: Decoder) throws {
@@ -40,7 +43,8 @@ struct DaySchedule: Identifiable, Codable {
         timeBlocks = try container.decode([TimeBlock].self, forKey: .timeBlocks)
         todos = try container.decode([String].self, forKey: .todos)
         todoCompleted = try container.decodeIfPresent([Bool].self, forKey: .todoCompleted) ?? [false, false, false]
-        dayEvent = try container.decode(String.self, forKey: .dayEvent)
+        dayEvent = try container.decodeIfPresent(String.self, forKey: .dayEvent) ?? ""
+        diaryNote = try container.decodeIfPresent(String.self, forKey: .diaryNote) ?? ""
 
         // New format
         var values = try container.decodeIfPresent([String: TrackingValue].self, forKey: .trackingValues) ?? [:]
@@ -64,6 +68,7 @@ struct DaySchedule: Identifiable, Codable {
         try container.encode(todoCompleted, forKey: .todoCompleted)
         try container.encode(trackingValues, forKey: .trackingValues)
         try container.encode(dayEvent, forKey: .dayEvent)
+        try container.encode(diaryNote, forKey: .diaryNote)
     }
 
     // MARK: - Tracking Value Helpers

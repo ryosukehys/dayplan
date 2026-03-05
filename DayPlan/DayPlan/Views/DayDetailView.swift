@@ -44,6 +44,8 @@ struct DayDetailView: View {
                 TodoSectionView(date: date, viewModel: viewModel)
                     .padding(.horizontal)
 
+                diarySection
+
                 dailyCategoryBreakdown
                     .padding(.horizontal)
 
@@ -543,6 +545,54 @@ struct DayDetailView: View {
             .buttonStyle(.plain)
             .padding(.horizontal)
         }
+    }
+
+    // MARK: - Diary Section
+
+    private var diarySection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: "note.text")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                Text("ふりかえり")
+                    .font(.caption.bold())
+                    .foregroundColor(.secondary)
+                Spacer()
+                if !schedule.diaryNote.isEmpty {
+                    Text("\(schedule.diaryNote.count)文字")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            TextEditor(text: diaryNoteBinding)
+                .font(.subheadline)
+                .frame(minHeight: 80, maxHeight: 200)
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .background(Color(.systemGray6))
+                .cornerRadius(10)
+                .overlay(
+                    Group {
+                        if schedule.diaryNote.isEmpty {
+                            Text("できたこと、できなかったこと、気づきなど...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary.opacity(0.5))
+                                .padding(12)
+                        }
+                    },
+                    alignment: .topLeading
+                )
+        }
+        .padding(.horizontal)
+    }
+
+    private var diaryNoteBinding: Binding<String> {
+        Binding(
+            get: { viewModel.schedule(for: date).diaryNote },
+            set: { viewModel.updateDiaryNote(for: date, note: $0) }
+        )
     }
 
     // MARK: - Calendar Export
